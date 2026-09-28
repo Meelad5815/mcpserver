@@ -3,7 +3,7 @@ import { z } from "zod";
 import * as wp from "./wordpress";
 
 const out=(v:unknown)=>({content:[{type:"text" as const,text:JSON.stringify(v,null,2)}]});
-const wrap=(server:McpServer,name:string,description:string,inputSchema:z.ZodRawShape,fn:(a:any)=>Promise<any>)=>{
+const wrap=(server:McpServer,name:string,description:string,inputSchema:any,fn:(a:any)=>Promise<any>)=>{
  server.registerTool(name,{description,inputSchema},async(a:any)=>{
   try{return out(await fn(a));}
   catch(e){return {content:[{type:"text" as const,text:JSON.stringify({ok:false,error:e instanceof Error?e.message:String(e)},null,2)}],isError:true};}
