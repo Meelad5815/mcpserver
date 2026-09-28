@@ -20,3 +20,4 @@ async function guarded(req:Request){
 }
 export const GET=guarded;
 export const POST=guarded;
+export const DELETE=guarded;
