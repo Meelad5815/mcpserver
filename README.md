@@ -19,6 +19,7 @@ WORDPRESS_URL
 WORDPRESS_USERNAME
 WORDPRESS_APP_PASSWORD
 MCP_AUTH_TOKEN
+DASHBOARD_PASSWORD
 
 Never commit real credentials. Add them as server-side environment variables in the deployment platform.
 
@@ -30,7 +31,7 @@ npm install
 npm run dev
 
 Production:
-Deploy the repository to Vercel and add all four environment variables.
+Deploy the repository to Vercel and add all five environment variables. Keep `DASHBOARD_PASSWORD` separate from `MCP_AUTH_TOKEN`; the control panel no longer falls back to the MCP token.
 
 Safety:
 New posts/pages default to draft. Publishing and trashing are separate tools.
