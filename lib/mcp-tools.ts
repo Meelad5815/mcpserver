@@ -3,19 +3,22 @@ import { z } from "zod";
 import * as wp from "./wordpress";
 
 const out=(v:unknown)=>({content:[{type:"text" as const,text:JSON.stringify(v,null,2)}]});
-const wrap=(server:McpServer,name:string,description:string,inputSchema:any,fn:(a:any)=>Promise<any>)=>{
- server.registerTool(name,{description,inputSchema},async(a:any)=>{try{return out(await fn(a))}catch(e){return out({ok:false,error:e instanceof Error?e.message:String(e)})}});
+const wrap=(server:McpServer,name:string,description:string,inputSchema:z.ZodTypeAny,fn:(a:any)=>Promise<any>)=>{
+ server.registerTool(name,{description,inputSchema},async(a:any)=>{
+  try{return out(await fn(a));}
+  catch(e){return {content:[{type:"text" as const,text:JSON.stringify({ok:false,error:e instanceof Error?e.message:String(e)},null,2)}],isError:true};}
+ });
 };
-const id={id:z.number().int().positive()};
-const q={params:z.string().optional().default("")};
+const id=z.object({id:z.number().int().positive()});
+const q=z.object({params:z.string().optional().default("")});
 const slug=(s:string)=>s.toLowerCase().trim().replace(/[^a-z0-9\s-]/g,"").replace(/\s+/g,"-").replace(/-+/g,"-").slice(0,90);
 
 export function registerWordPressTools(server:McpServer){
- wrap(server,"wp_health_check","Check WordPress REST connectivity and the authenticated integration user.",{},async()=>({ok:true,wordpress_url:process.env.WORDPRESS_URL,user:await wp.currentUser()}));
- wrap(server,"wp_site_status","Inspect WordPress post types.",{},async()=>wp.siteStatus());
- wrap(server,"wp_get_current_user","Get the authenticated WordPress user.",{},async()=>wp.currentUser());
- wrap(server,"wp_get_types","List WordPress post types.",{},async()=>wp.getTypes());
- wrap(server,"wp_get_taxonomies","List WordPress taxonomies.",{},async()=>wp.getTaxonomies());
+ wrap(server,"wp_health_check","Check WordPress REST connectivity and the authenticated integration user.",z.object({}),async()=>({ok:true,wordpress_url:process.env.WORDPRESS_URL,user:await wp.currentUser()}));
+ wrap(server,"wp_site_status","Inspect WordPress post types.",z.object({}),async()=>wp.siteStatus());
+ wrap(server,"wp_get_current_user","Get the authenticated WordPress user.",z.object({}),async()=>wp.currentUser());
+ wrap(server,"wp_get_types","List WordPress post types.",z.object({}),async()=>wp.getTypes());
+ wrap(server,"wp_get_taxonomies","List WordPress taxonomies.",z.object({}),async()=>wp.getTaxonomies());
 
  wrap(server,"wp_get_posts","List posts using standard WordPress REST query parameters.",q,async({params})=>wp.getPosts(params));
  wrap(server,"wp_get_post","Get a post by ID.",id,async({id})=>wp.getPost(id));
