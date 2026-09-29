@@ -12,7 +12,7 @@ function authHeader() {
   return "Basic " + Buffer.from(u + ":" + p).toString("base64");
 }
 
-export async function wpFetch<T = unknown>(path: string, init: RequestInit = {}): Promise<T> {
+async function wpFetchMeta<T = unknown>(path: string, init: RequestInit = {}) {
   const h = new Headers(init.headers);
   h.set("Authorization", authHeader());
   h.set("Accept", "application/json");
@@ -34,7 +34,12 @@ export async function wpFetch<T = unknown>(path: string, init: RequestInit = {})
       (typeof d === "string" ? d : JSON.stringify(d)).slice(0, 1200),
     );
   }
-  return d as T;
+  return { data: d as T, headers: r.headers };
+}
+
+export async function wpFetch<T = unknown>(path: string, init: RequestInit = {}): Promise<T> {
+  const { data } = await wpFetchMeta<T>(path, init);
+  return data;
 }
 
 export const currentUser = () => wpFetch("/users/me");
@@ -43,17 +48,25 @@ export const getTypes = () => wpFetch("/types");
 export const getTaxonomies = () => wpFetch("/taxonomies");
 export const getPosts = (q: string) => wpFetch("/posts" + (q ? "?" + q : ""));
 export const getPost = (id: number) => wpFetch("/posts/" + id);
+export const getPostsCount = async () => {
+  const { headers } = await wpFetchMeta("/posts?per_page=1&context=edit");
+  return Number(headers.get("X-WP-Total") || 0);
+};
 export const createPost = (b: unknown) => wpFetch("/posts", { method: "POST", body: JSON.stringify(b) });
 export const updatePost = (id: number, b: unknown) => wpFetch("/posts/" + id, { method: "POST", body: JSON.stringify(b) });
 export const trashPost = (id: number) => wpFetch("/posts/" + id, { method: "DELETE" });
 export const getPages = (q: string) => wpFetch("/pages" + (q ? "?" + q : ""));
 export const getPage = (id: number) => wpFetch("/pages/" + id);
+export const getPagesCount = async () => {
+  const { headers } = await wpFetchMeta("/pages?per_page=1&context=edit");
+  return Number(headers.get("X-WP-Total") || 0);
+};
 export const createPage = (b: unknown) => wpFetch("/pages", { method: "POST", body: JSON.stringify(b) });
 export const updatePage = (id: number, b: unknown) => wpFetch("/pages/" + id, { method: "POST", body: JSON.stringify(b) });
 export const getCategories = (q: string) => wpFetch("/categories" + (q ? "?" + q : ""));
 export const createCategory = (b: unknown) => wpFetch("/categories", { method: "POST", body: JSON.stringify(b) });
 export const getTags = (q: string) => wpFetch("/tags" + (q ? "?" + q : ""));
-export const createTag = (b: unknown) => wpFetch("/tags", { method: "POST", body: JSON.stringify(b) });
+export const createTag = (b: unknown) => wpFetch("/tags" + (q ? "?" + q : ""));
 export const getMedia = (q: string) => wpFetch("/media" + (q ? "?" + q : ""));
 export const getMediaItem = (id: number) => wpFetch("/media/" + id);
 export const getComments = (q: string) => wpFetch("/comments" + (q ? "?" + q : ""));
