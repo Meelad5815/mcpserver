@@ -118,12 +118,20 @@ export default function ControlPage(){
     <button onClick={connectAI} disabled={busy||!!engine}>{engine?"AI Connected":"Connect Free Local AI"}</button>
     <span style={{marginLeft:12,fontSize:13}}>{progress}</span>
     {webgpu===false && <p style={{padding:10,borderRadius:8,background:"#fff3cd"}}>WebGPU دستیاب نہیں۔ WordPress Quick Actions اور basic text commands پھر بھی چل سکتے ہیں؛ full browser-local LLM کے لیے WebGPU-compatible device/browser درکار ہے۔</p>}
-    <section style={{display:"flex",gap:8,flexWrap:"wrap",margin:"20px 0"}}>
-      <button onClick={()=>run("health")} disabled={busy}>Health</button>
-      <button onClick={()=>run("posts")} disabled={busy}>Posts</button>
-      <button onClick={()=>run("pages")} disabled={busy}>Pages</button>
-      <button onClick={()=>run("categories")} disabled={busy}>Categories</button>
-      <button onClick={()=>run("tags")} disabled={busy}>Tags</button>
+    <section style={{display:"grid",gap:12,margin:"20px 0"}}>
+      <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+        <button onClick={()=>run("health")} disabled={busy}>Health</button>
+        <button onClick={()=>run("posts")} disabled={busy}>Posts</button>
+        <button onClick={()=>run("pages")} disabled={busy}>Pages</button>
+        <button onClick={()=>run("categories")} disabled={busy}>Categories</button>
+        <button onClick={()=>run("tags")} disabled={busy}>Tags</button>
+      </div>
+      <div style={{display:"flex",gap:8,flexWrap:"wrap",alignItems:"center",padding:12,border:"1px solid #ddd",borderRadius:10}}>
+        <input id="post-id" type="number" min="1" placeholder="Post ID" style={{width:100,padding:9}}/>
+        <button onClick={()=>{const id=Number((document.getElementById("post-id") as HTMLInputElement)?.value);if(!Number.isInteger(id)||id<1)return alert("Valid Post ID دیں");if(confirm(`Post #${id} کو publish کرنا ہے؟`))run("publish_post",{id})}} disabled={busy}>Publish</button>
+        <button onClick={()=>{const id=Number((document.getElementById("post-id") as HTMLInputElement)?.value);if(!Number.isInteger(id)||id<1)return alert("Valid Post ID دیں");if(confirm(`Post #${id} کو Trash میں بھیجنا ہے؟`))run("trash_post",{id})}} disabled={busy}>Trash</button>
+        <span style={{fontSize:12,opacity:.7}}>Publish/Trash ہمیشہ explicit confirmation کے بعد ہوگا۔</span>
+      </div>
     </section>
     <section style={{display:"flex",gap:8}}>
       <input value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>e.key==="Enter"&&send()} placeholder="مثلاً: میرے posts دکھاؤ" style={{flex:1,padding:12}}/>
