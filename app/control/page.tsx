@@ -19,6 +19,7 @@ function fallbackCommand(text:string){
   if(/\b(page|pages)\b|پیج|پیجز/.test(t)) return "pages";
   if(/categor(y|ies)\b|category|کیٹیگری|کیٹگری/.test(t)) return "categories";
   if(/\btag|tags\b|ٹیگ|ٹیگز/.test(t)) return "tags";
+  if(/\bmedia|images|image\b|میڈیا|تصاویر|تصویر/.test(t)) return "media";
   if(/\bhealth|status|check\b|صحت|اسٹیٹس|چیک/.test(t)) return "health";
   return null;
 }
@@ -89,7 +90,7 @@ export default function ControlPage(){
     setBusy(true);
     try{
       const response=await engine.chat.completions.create({messages:[
-        {role:"system",content:`You are MRK WordPress control assistant. Return ONLY JSON. Supported actions: posts, pages, categories, tags, health, create_post, create_page, publish_post, update_post, trash_post. For destructive publish/trash, ask for explicit confirmation instead of executing. For create_post/page use draft status. JSON shape: {"reply":"...","action":"posts|pages|categories|tags|health|create_post|create_page|publish_post|update_post|trash_post|none","args":{}}.`},
+        {role:"system",content:`You are MRK WordPress control assistant. Return ONLY JSON. Supported actions: posts, pages, categories, tags, media, health, create_post, create_page, publish_post, update_post, trash_post. For destructive publish/trash, ask for explicit confirmation instead of executing. For create_post/page use draft status. JSON shape: {"reply":"...","action":"posts|pages|categories|tags|health|create_post|create_page|publish_post|update_post|trash_post|none","args":{}}.`},
         {role:"user",content:text}
       ],temperature:.1,max_tokens:300});
       const raw=response.choices[0]?.message?.content||"";
