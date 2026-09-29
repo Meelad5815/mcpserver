@@ -125,6 +125,7 @@ export default function ControlPage(){
         <button onClick={()=>run("pages")} disabled={busy}>Pages</button>
         <button onClick={()=>run("categories")} disabled={busy}>Categories</button>
         <button onClick={()=>run("tags")} disabled={busy}>Tags</button>
+      <button onClick={()=>run("media")} disabled={busy}>Media</button>
       </div>
       <div style={{display:"flex",gap:8,flexWrap:"wrap",alignItems:"center",padding:12,border:"1px solid #ddd",borderRadius:10}}>
         <input id="post-id" type="number" min="1" placeholder="Post ID" style={{width:100,padding:9}}/>
