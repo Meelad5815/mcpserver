@@ -68,29 +68,29 @@ async function natural(message: string) {
   }
 
   if (/(show|list|display|dikhao|dikhاؤ|دکھاؤ|دکھائیں|میرے posts|posts دکھاؤ)/i.test(message) && /(post|پوسٹ)/i.test(message)) {
-    const items: any[] = await getPosts("per_page=10&context=edit");
+    const items: any[] = await getPosts("per_page=10&context=edit") as any[];
     if (!items.length) return { handled: true, reply: "آپ کی website پر کوئی post نہیں ملی۔" };
     return { handled: true, reply: "تازہ 10 posts:\n" + items.map((p: any, i) => `${i + 1}. ${p?.title?.rendered || "Untitled"} (ID ${p?.id})`).join("\n") };
   }
 
   if (/(show|list|display|dikhao|دکھاؤ|دکھائیں)/i.test(message) && /(page|پیج|صفحات)/i.test(message)) {
-    const items: any[] = await getPages("per_page=10&context=edit");
+    const items: any[] = await getPages("per_page=10&context=edit") as any[];
     if (!items.length) return { handled: true, reply: "آپ کی website پر کوئی page نہیں ملا۔" };
     return { handled: true, reply: "تازہ 10 pages:\n" + items.map((p: any, i) => `${i + 1}. ${p?.title?.rendered || "Untitled"} (ID ${p?.id})`).join("\n") };
   }
 
   if (/(categories|category|کیٹیگری|زمرے)/i.test(message)) {
-    const items: any[] = await getCategories("per_page=50");
+    const items: any[] = await getCategories("per_page=50") as any[];
     return { handled: true, reply: `Website پر ${items.length} categories دستیاب ہیں۔\n` + items.slice(0, 20).map((x: any) => `• ${x?.name || "Untitled"}`).join("\n") };
   }
 
   if (/(tags|tag|ٹیگ)/i.test(message)) {
-    const items: any[] = await getTags("per_page=50");
+    const items: any[] = await getTags("per_page=50") as any[];
     return { handled: true, reply: `Website پر ${items.length} tags دستیاب ہیں۔\n` + items.slice(0, 20).map((x: any) => `• ${x?.name || "Untitled"}`).join("\n") };
   }
 
   if (/(media|images|photos|تصاویر|میڈیا)/i.test(message)) {
-    const items: any[] = await getMedia("per_page=20&media_type=image");
+    const items: any[] = await getMedia("per_page=20&media_type=image") as any[];
     return { handled: true, reply: `تازہ ${items.length} media items یہ ہیں:\n` + items.slice(0, 20).map((x: any) => `• ${x?.title?.rendered || x?.slug || "Image"} (ID ${x?.id})`).join("\n") };
   }
 
