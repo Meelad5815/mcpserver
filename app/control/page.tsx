@@ -15,6 +15,7 @@ async function callControl(payload:any){
 
 function fallbackCommand(text:string){
   const t=text.toLowerCase();
+  if(/\b(create|new|make|write|draft)\b.*\b(post|article)\b|\b(post|posts|article|articles)\b.*\b(create|new|make|write|draft)\b|نیا\s+پوسٹ|پوسٹ\s+بناؤ|پوسٹ\s+لکھو|ڈرافٹ/.test(t)) return "create_post";
   if(/\b(post|posts|article|articles)\b|پوسٹ|پوسٹس/.test(t)) return "posts";
   if(/\b(page|pages)\b|پیج|پیجز/.test(t)) return "pages";
   if(/categor(y|ies)\b|category|کیٹیگری|کیٹگری/.test(t)) return "categories";
