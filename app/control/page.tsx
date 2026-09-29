@@ -13,6 +13,16 @@ async function callControl(payload:any){
   return d.result;
 }
 
+function fallbackCommand(text:string){
+  const t=text.toLowerCase();
+  if(/\b(post|posts|article|articles)\b|پوسٹ|پوسٹس/.test(t)) return "posts";
+  if(/\b(page|pages)\b|پیج|پیجز/.test(t)) return "pages";
+  if(/categor(y|ies)\b|category|کیٹیگری|کیٹگری/.test(t)) return "categories";
+  if(/\btag|tags\b|ٹیگ|ٹیگز/.test(t)) return "tags";
+  if(/\bhealth|status|check\b|صحت|اسٹیٹس|چیک/.test(t)) return "health";
+  return null;
+}
+
 export default function ControlPage(){
   const [password,setPassword]=useState("");
   const [logged,setLogged]=useState(false);
@@ -21,26 +31,35 @@ export default function ControlPage(){
   const [busy,setBusy]=useState(false);
   const [progress,setProgress]=useState("");
   const [engine,setEngine]=useState<any>(null);
+  const [webgpu,setWebgpu]=useState<boolean|null>(null);
 
   async function login(){
     setBusy(true);
     try{
       const r=await fetch("/api/control/auth",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({password})});
-      if(!r.ok) throw new Error("Password غلط ہے");
+      const d=await r.json().catch(()=>({}));
+      if(!r.ok) throw new Error(d.error||"Password غلط ہے");
       setLogged(true);
     }catch(e){alert(e instanceof Error?e.message:String(e));}
     finally{setBusy(false);}
   }
 
   async function connectAI(){
-    setBusy(true); setProgress("Local AI model browser میں load ہو رہا ہے...");
+    setBusy(true);
     try{
+      const supported=typeof navigator!=="undefined" && "gpu" in navigator;
+      setWebgpu(supported);
+      if(!supported) throw new Error("اس browser/device میں WebGPU دستیاب نہیں۔ Quick Actions اور basic commands پھر بھی کام کریں گے۔");
+      setProgress("Local AI model browser میں load ہو رہا ہے...");
       const id=pickModel();
+      if(!id) throw new Error("کوئی compatible local model نہیں ملا۔");
       const e=await CreateMLCEngine(id,{initProgressCallback:(p:any)=>setProgress(`AI loading: ${Math.round((p?.progress||0)*100)}%`)});
       setEngine(e);
       setProgress("Local AI تیار ہے — کوئی AI API key استعمال نہیں ہو رہی۔");
-    }catch(e){setProgress("AI load نہیں ہوا: "+(e instanceof Error?e.message:String(e)));}
-    finally{setBusy(false);}
+    }catch(e){
+      setEngine(null);
+      setProgress("Local AI دستیاب نہیں: "+(e instanceof Error?e.message:String(e)));
+    }finally{setBusy(false);}
   }
 
   async function run(action:string,args:any={}){
@@ -55,7 +74,18 @@ export default function ControlPage(){
   async function send(){
     const text=input.trim(); if(!text||busy) return;
     setInput(""); setMsgs(m=>[...m,{role:"user",text}]);
-    if(!engine){setMsgs(m=>[...m,{role:"assistant",text:"پہلے Connect AI کریں۔"}]);return;}
+
+    if(!engine){
+      const action=fallbackCommand(text);
+      if(action){
+        setMsgs(m=>[...m,{role:"assistant",text:"WebGPU/local AI دستیاب نہیں، اس لیے basic command mode استعمال ہو رہا ہے۔"}]);
+        await run(action);
+      }else{
+        setMsgs(m=>[...m,{role:"assistant",text:"Local AI ابھی connected نہیں۔ آپ Health, Posts, Pages, Categories یا Tags Quick Action استعمال کر سکتے ہیں، یا انہی commands میں سے کوئی لکھیں۔"}]);
+      }
+      return;
+    }
+
     setBusy(true);
     try{
       const response=await engine.chat.completions.create({messages:[
@@ -69,7 +99,7 @@ export default function ControlPage(){
         const result=await callControl({action:cmd.action,...(cmd.args||{})});
         setMsgs(m=>[...m,{role:"assistant",text:JSON.stringify(result,null,2).slice(0,7000)}]);
       } else if(cmd.action==="publish_post"||cmd.action==="trash_post"){
-        setMsgs(m=>[...m,{role:"assistant",text:"یہ consequential action ہے۔ براہِ کرم نیچے Quick Action سے واضح طور پر Publish/Trash کریں۔"}]);
+        setMsgs(m=>[...m,{role:"assistant",text:"یہ consequential action ہے۔ براہِ کرم واضح Quick Action/confirmation کے ذریعے کریں۔"}]);
       }
     }catch(e){setMsgs(m=>[...m,{role:"assistant",text:"AI error: "+(e instanceof Error?e.message:String(e))}]);}
     finally{setBusy(false);}
@@ -79,7 +109,7 @@ export default function ControlPage(){
     <h1>MRK WordPress Control</h1><p>Free local-AI control panel. Server secret browser میں expose نہیں ہوتا۔</p>
     <input type="password" value={password} onChange={e=>setPassword(e.target.value)} placeholder="Dashboard password" style={{width:"100%",padding:12,boxSizing:"border-box"}}/>
     <button onClick={login} disabled={busy} style={{marginTop:12,padding:"10px 18px"}}>Login</button>
-    <p style={{fontSize:13,opacity:.7}}>اگر DASHBOARD_PASSWORD set نہیں ہے تو موجودہ MCP token استعمال ہوگا۔ Security کے لیے بعد میں DASHBOARD_PASSWORD الگ رکھیں۔</p>
+    <p style={{fontSize:13,opacity:.7}}>Dashboard کے لیے الگ <code>DASHBOARD_PASSWORD</code> استعمال ہوتا ہے؛ MCP token اب fallback password نہیں ہے۔</p>
   </main>;
 
   return <main style={{maxWidth:1000,margin:"0 auto",padding:24,fontFamily:"system-ui"}}>
@@ -87,6 +117,7 @@ export default function ControlPage(){
     <p>Zero-budget architecture: browser-local AI → secure server → WordPress.</p>
     <button onClick={connectAI} disabled={busy||!!engine}>{engine?"AI Connected":"Connect Free Local AI"}</button>
     <span style={{marginLeft:12,fontSize:13}}>{progress}</span>
+    {webgpu===false && <p style={{padding:10,borderRadius:8,background:"#fff3cd"}}>WebGPU دستیاب نہیں۔ WordPress Quick Actions اور basic text commands پھر بھی چل سکتے ہیں؛ full browser-local LLM کے لیے WebGPU-compatible device/browser درکار ہے۔</p>}
     <section style={{display:"flex",gap:8,flexWrap:"wrap",margin:"20px 0"}}>
       <button onClick={()=>run("health")} disabled={busy}>Health</button>
       <button onClick={()=>run("posts")} disabled={busy}>Posts</button>
@@ -99,6 +130,6 @@ export default function ControlPage(){
       <button onClick={send} disabled={busy||!input.trim()}>Send</button>
     </section>
     <div style={{marginTop:20,display:"grid",gap:10}}>{msgs.map((m,i)=><div key={i} style={{padding:14,borderRadius:10,background:m.role==="user"?"#e8f0fe":"#f1f3f4",whiteSpace:"pre-wrap",overflow:"auto"}}><b>{m.role==="user"?"You":"MRK AI"}</b><br/>{m.text}</div>)}</div>
-    <p style={{marginTop:24,fontSize:12,opacity:.65}}>WebLLM runs inference in the browser with WebGPU; the first model download can take time and is cached by the browser.</p>
+    <p style={{marginTop:24,fontSize:12,opacity:.65}}>WebLLM browser میں WebGPU استعمال کرتا ہے؛ پہلی model download بڑی ہو سکتی ہے اور browser cache میں محفوظ ہوتی ہے۔</p>
   </main>;
 }
