@@ -134,6 +134,14 @@ export default function ControlPage(){
         <span style={{fontSize:12,opacity:.7}}>Publish/Trash ہمیشہ explicit confirmation کے بعد ہوگا۔</span>
       </div>
     </section>
+    <section style={{marginTop:12,padding:12,border:"1px solid #ddd",borderRadius:10}}>
+      <b>Quick Draft</b>
+      <div style={{display:"grid",gap:8,marginTop:8}}>
+        <input id="draft-title" placeholder="Post title" style={{padding:10}}/>
+        <textarea id="draft-content" placeholder="Post content" rows={6} style={{padding:10}}/>
+        <button disabled={busy} onClick={()=>{const title=(document.getElementById("draft-title") as HTMLInputElement).value.trim();const content=(document.getElementById("draft-content") as HTMLTextAreaElement).value.trim();if(!title||!content)return alert("Title اور content دونوں دیں");run("create_post",{title,content})}}>Create Draft Post</button>
+      </div>
+    </section>
     <section style={{display:"flex",gap:8}}>
       <input value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>e.key==="Enter"&&send()} placeholder="مثلاً: میرے posts دکھاؤ" style={{flex:1,padding:12}}/>
       <button onClick={send} disabled={busy||!input.trim()}>Send</button>
