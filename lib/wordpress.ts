@@ -1,4 +1,4 @@
-const baseUrl=()=>{const v=process.env.WORDPRESS_URL?.trim().replace(/\/$/,"");if(!v)throw new Error("WORDPRESS_URL is not configured");return v};
+const baseUrl=()=>{\n const raw=process.env.WORDPRESS_URL?.trim();\n if(!raw)throw new Error("WORDPRESS_URL is not configured");\n const normalized=/^https?:\\/\\//i.test(raw)?raw:"https://"+raw;\n return normalized.replace(/\\/$/,"");\n};
 function authHeader(){const u=process.env.WORDPRESS_USERNAME,p=process.env.WORDPRESS_APP_PASSWORD;if(!u||!p)throw new Error("WordPress credentials are not configured");return "Basic "+Buffer.from(u+":"+p).toString("base64")}
 export async function wpFetch<T=unknown>(path:string,init:RequestInit={}):Promise<T>{
  const h=new Headers(init.headers);h.set("Authorization",authHeader());h.set("Accept","application/json");
