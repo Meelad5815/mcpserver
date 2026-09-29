@@ -49,16 +49,34 @@ export default function ControlPage(){
     try{
       const supported=typeof navigator!=="undefined" && "gpu" in navigator;
       setWebgpu(supported);
-      if(!supported) throw new Error("اس browser/device میں WebGPU دستیاب نہیں۔ Natural-language server mode پھر بھی کام کرے گا۔");
+      if(!supported){
+        setProgress("Local AI اس browser/device پر دستیاب نہیں۔ Server mode فعال ہے۔");
+        return;
+      }
+      if(typeof navigator!=="undefined" && navigator.onLine===false){
+        setProgress("Internet connection موجود نہیں؛ Local AI model پہلی بار download نہیں ہو سکتا۔ Server mode فعال ہے۔");
+        return;
+      }
+
       setProgress("Local AI model browser میں load ہو رہا ہے...");
       const id=pickModel();
-      if(!id) throw new Error("کوئی compatible local model نہیں ملا۔");
-      const e=await CreateMLCEngine(id,{initProgressCallback:(p:any)=>setProgress(`AI loading: ${Math.round((p?.progress||0)*100)}%`)});
+      if(!id){
+        setProgress("Compatible local model نہیں ملا۔ Server mode فعال ہے۔");
+        return;
+      }
+
+      const e=await CreateMLCEngine(id,{
+        initProgressCallback:(p:any)=>setProgress(`AI loading: ${Math.round((p?.progress||0)*100)}%`)
+      });
       setEngine(e);
       setProgress("Local AI تیار ہے — کوئی AI API key استعمال نہیں ہو رہی۔");
     }catch(e){
       setEngine(null);
-      setProgress("Local AI دستیاب نہیں: "+(e instanceof Error?e.message:String(e)));
+      setWebgpu(true);
+      // WebLLM may fail while downloading/caching model files. This must not block
+      // the server-side WordPress control path, so keep the technical error out of
+      // the main UI and fall back cleanly to server mode.
+      setProgress("Local AI اس وقت load نہیں ہو سکی۔ Server mode فعال ہے؛ WordPress control جاری رہے گا۔");
     }finally{setBusy(false);}
   }
 
@@ -117,10 +135,10 @@ export default function ControlPage(){
 
   return <main style={{maxWidth:1000,margin:"0 auto",padding:24,fontFamily:"system-ui"}}>
     <h1>MRK WordPress AI Control</h1>
-    <p>Zero-budget architecture: browser-local AI → secure server → WordPress.</p>
-    <button onClick={connectAI} disabled={busy||!!engine}>{engine?"AI Connected":"Connect Free Local AI"}</button>
+    <p>Zero-budget architecture: optional browser-local AI → secure server → WordPress.</p>
+    <button onClick={connectAI} disabled={busy||!!engine}>{engine?"Local AI Connected":"Try Free Local AI"}</button>
     <span style={{marginLeft:12,fontSize:13}}>{progress}</span>
-    {webgpu===false && <p style={{padding:10,borderRadius:8,background:"#fff3cd"}}>WebGPU دستیاب نہیں۔ کوئی مسئلہ نہیں: natural-language WordPress control server کے ذریعے چل سکتا ہے؛ local AI صرف optional ہے۔</p>}
+    {webgpu===false && <p style={{padding:10,borderRadius:8,background:"#fff3cd"}}>WebGPU دستیاب نہیں۔ کوئی مسئلہ نہیں: بنیادی WordPress control server کے ذریعے چلتا ہے؛ Local AI صرف optional ہے۔</p>}
     <section style={{display:"grid",gap:12,margin:"20px 0"}}>
       <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
         <button onClick={()=>run("health")} disabled={busy}>Health</button>
@@ -150,6 +168,6 @@ export default function ControlPage(){
       <button onClick={send} disabled={busy||!input.trim()}>Send</button>
     </section>
     <div style={{marginTop:20,display:"grid",gap:10}}>{msgs.map((m,i)=><div key={i} style={{padding:14,borderRadius:10,background:m.role==="user"?"#e8f0fe":"#f1f3f4",whiteSpace:"pre-wrap",overflow:"auto"}}><b>{m.role==="user"?"You":"MRK AI"}</b><br/>{m.text}</div>)}</div>
-    <p style={{marginTop:24,fontSize:12,opacity:.65}}>Local WebLLM optional ہے؛ بنیادی WordPress control کے لیے WebGPU ضروری نہیں۔</p>
+    <p style={{marginTop:24,fontSize:12,opacity:.65}}>Local WebLLM optional ہے۔ اگر model browser میں download/cache نہ ہو سکے تو بھی بنیادی WordPress control server کے ذریعے کام کرتا رہے گا۔</p>
   </main>;
 }
