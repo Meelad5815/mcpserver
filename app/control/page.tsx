@@ -97,6 +97,14 @@ export default function ControlPage(){
       const raw=response.choices[0]?.message?.content||"";
       let cmd:any; try{cmd=JSON.parse(raw.replace(/\`\`\`json|\`\`\`/g,"").trim())}catch{cmd={action:"none",args:{},reply:raw};}
       if(cmd.reply) setMsgs(m=>[...m,{role:"assistant",text:cmd.reply}]);
+      if(cmd.action==="create_post" && (!cmd.args?.title || !cmd.args?.content)){
+        setMsgs(m=>[...m,{role:"assistant",text:"Draft بنانے کے لیے Title اور Content دونوں درکار ہیں۔ مثال: "Title: Online Earning\\nContent: ...""}]);
+        return;
+      }
+      if(cmd.action==="update_post" && !Number.isInteger(Number(cmd.args?.id))){
+        setMsgs(m=>[...m,{role:"assistant",text:"Update کے لیے درست Post ID درکار ہے۔"}]);
+        return;
+      }
       if(cmd.action && cmd.action!=="none" && cmd.action!=="publish_post" && cmd.action!=="trash_post"){
         const result=await callControl({action:cmd.action,...(cmd.args||{})});
         setMsgs(m=>[...m,{role:"assistant",text:JSON.stringify(result,null,2).slice(0,7000)}]);
