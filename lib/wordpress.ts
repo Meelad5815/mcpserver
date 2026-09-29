@@ -66,7 +66,7 @@ export const updatePage = (id: number, b: unknown) => wpFetch("/pages/" + id, { 
 export const getCategories = (q: string) => wpFetch("/categories" + (q ? "?" + q : ""));
 export const createCategory = (b: unknown) => wpFetch("/categories", { method: "POST", body: JSON.stringify(b) });
 export const getTags = (q: string) => wpFetch("/tags" + (q ? "?" + q : ""));
-export const createTag = (b: unknown) => wpFetch("/tags" + (q ? "?" + q : ""));
+export const createTag = (b: unknown) => wpFetch("/tags", { method: "POST", body: JSON.stringify(b) });
 export const getMedia = (q: string) => wpFetch("/media" + (q ? "?" + q : ""));
 export const getMediaItem = (id: number) => wpFetch("/media/" + id);
 export const getComments = (q: string) => wpFetch("/comments" + (q ? "?" + q : ""));
