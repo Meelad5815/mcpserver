@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getPosts, getPages, getCategories, getTags, createPost, createPage, updatePost, trashPost, siteStatus, currentUser } from "@/lib/wordpress";
+import { getPosts, getPages, getCategories, getTags, getMedia, createPost, createPage, updatePost, trashPost, siteStatus, currentUser } from "@/lib/wordpress";
 
 function authed(req: Request) {
   return req.headers.get("cookie")?.split(";").some((v) => v.trim() === "mrk_control=1") ?? false;
@@ -22,6 +22,7 @@ export async function POST(req: Request) {
       case "pages": return NextResponse.json({ok:true,result:await getPages(String(body?.query||"per_page=10&context=edit"))});
       case "categories": return NextResponse.json({ok:true,result:await getCategories(String(body?.query||"per_page=50"))});
       case "tags": return NextResponse.json({ok:true,result:await getTags(String(body?.query||"per_page=50"))});
+      case "media": return NextResponse.json({ok:true,result:await getMedia(String(body?.query||"per_page=20&media_type=image"))});
       case "create_post": return NextResponse.json({ok:true,result:await createPost({title:String(body?.title||"Untitled"),content:String(body?.content||""),status:"draft"})});
       case "update_post": {
         const id=Number(body?.id);
