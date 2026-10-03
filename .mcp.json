@@ -1,0 +1,19 @@
+{
+  "mcpServers": {
+    "mrk-wordpress": {
+      "type": "http",
+      "url": "https://mcpserver-drab.vercel.app/api/mcp",
+      "headers": {
+        "Authorization": "Bearer ${input:mrk-mcp-token}"
+      }
+    }
+  },
+  "inputs": [
+    {
+      "type": "promptString",
+      "id": "mrk-mcp-token",
+      "description": "MRK MCP bearer token",
+      "password": true
+    }
+  ]
+}
