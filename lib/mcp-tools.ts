@@ -20,6 +20,8 @@ export function registerWordPressTools(server:McpServer){
  wrap(server,"wp_get_types","List WordPress post types.",z.object({}),async()=>wp.getTypes());
  wrap(server,"wp_get_taxonomies","List WordPress taxonomies.",z.object({}),async()=>wp.getTaxonomies());
  wrap(server,"wp_get_settings","Get WordPress site settings. Read-only.",z.object({}),async()=>wp.getSettings());
+ wrap(server,"wp_api_discovery","Inspect the live WordPress REST API root and available namespaces/routes. Read-only.",z.object({}),async()=>wp.apiDiscovery());
+ wrap(server,"wp_full_audit","Run a read-only professional WordPress audit. Checks core, content, taxonomy, settings, navigation, plugins, themes and media. Unavailable endpoints are reported instead of failing the whole audit.",z.object({}),async()=>wp.fullAudit());
  wrap(server,"wp_get_menus","List navigation menus.",q,async({params})=>wp.getMenus(params));
  wrap(server,"wp_get_menu","Get a navigation menu by ID.",id,async({id})=>wp.getMenu(id));
  wrap(server,"wp_get_menu_items","List navigation menu items.",q,async({params})=>wp.getMenuItems(params));
