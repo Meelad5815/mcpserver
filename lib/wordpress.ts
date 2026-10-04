@@ -46,6 +46,13 @@ export const currentUser = () => wpFetch("/users/me");
 export const siteStatus = () => wpFetch("/types");
 export const getTypes = () => wpFetch("/types");
 export const getTaxonomies = () => wpFetch("/taxonomies");
+export const getSettings = () => wpFetch("/settings");
+export const getMenus = (q: string) => wpFetch("/menus" + (q ? "?" + q : ""));
+export const getMenu = (id: number) => wpFetch("/menus/" + id);
+export const getMenuItems = (q: string) => wpFetch("/menu-items" + (q ? "?" + q : ""));
+export const getMenuItem = (id: number) => wpFetch("/menu-items/" + id);
+export const getPlugins = (q: string) => wpFetch("/plugins" + (q ? "?" + q : ""));
+export const getThemes = (q: string) => wpFetch("/themes" + (q ? "?" + q : ""));
 export const getPosts = (q: string) => wpFetch("/posts" + (q ? "?" + q : ""));
 export const getPost = (id: number) => wpFetch("/posts/" + id);
 export const getPostsCount = async () => {
