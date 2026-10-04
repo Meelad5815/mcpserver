@@ -19,6 +19,13 @@ export function registerWordPressTools(server:McpServer){
  wrap(server,"wp_get_current_user","Get the authenticated WordPress user.",z.object({}),async()=>wp.currentUser());
  wrap(server,"wp_get_types","List WordPress post types.",z.object({}),async()=>wp.getTypes());
  wrap(server,"wp_get_taxonomies","List WordPress taxonomies.",z.object({}),async()=>wp.getTaxonomies());
+ wrap(server,"wp_get_settings","Get WordPress site settings. Read-only.",z.object({}),async()=>wp.getSettings());
+ wrap(server,"wp_get_menus","List navigation menus.",q,async({params})=>wp.getMenus(params));
+ wrap(server,"wp_get_menu","Get a navigation menu by ID.",id,async({id})=>wp.getMenu(id));
+ wrap(server,"wp_get_menu_items","List navigation menu items.",q,async({params})=>wp.getMenuItems(params));
+ wrap(server,"wp_get_menu_item","Get a navigation menu item by ID.",id,async({id})=>wp.getMenuItem(id));
+ wrap(server,"wp_get_plugins","Inspect installed WordPress plugins. Read-only.",q,async({params})=>wp.getPlugins(params));
+ wrap(server,"wp_get_themes","Inspect installed WordPress themes. Read-only.",q,async({params})=>wp.getThemes(params));
 
  wrap(server,"wp_get_posts","List posts using standard WordPress REST query parameters.",q,async({params})=>wp.getPosts(params));
  wrap(server,"wp_get_post","Get a post by ID.",id,async({id})=>wp.getPost(id));
