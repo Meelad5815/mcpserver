@@ -141,11 +141,11 @@ export async function verifyRefreshToken(token: string) {
 }
 
 export function getIssuer() {
-  return (process.env.OAUTH_ISSUER || "https://mcpserver-drab.vercel.app").replace(/\\/$/, "");
+  return (process.env.OAUTH_ISSUER || "https://mcpserver-drab.vercel.app").replace(/\/$/, "");
 }
 
 export function getResourceUrl() {
-  return (process.env.MCP_RESOURCE_URL || getIssuer() + "/api/mcp").replace(/\\/$/, "");
+  return (process.env.MCP_RESOURCE_URL || getIssuer() + "/api/mcp").replace(/\/$/, "");
 }
 
 export function oauthUsername() {
