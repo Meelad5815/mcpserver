@@ -161,3 +161,5 @@ export function htmlEscape(value: string) {
     "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;",
   }[char] || char));
 }
+
+// Preview OAuth environment validation is configured outside source control.
