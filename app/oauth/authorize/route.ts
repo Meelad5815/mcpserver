@@ -63,7 +63,7 @@ async function issueRedirect(params: URLSearchParams) {
   }
 
   const allowed = new Set(["read", "write", "offline_access"]);
-  const scope = requestedScope.split(/\\s+/).filter(Boolean).filter((item) => allowed.has(item)).join(" ");
+  const scope = requestedScope.split(/\s+/).filter(Boolean).filter((item) => allowed.has(item)).join(" ");
   if (!scope.includes("read")) {
     return errorRedirect(redirectUri, "invalid_scope", "The read scope is required.", state);
   }
@@ -88,7 +88,6 @@ export async function GET(request: Request) {
   const params = url.searchParams;
   const clientId = params.get("client_id") || "";
   const redirectUri = params.get("redirect_uri") || "";
-  const state = params.get("state") || "";
 
   const passwordConfigured = !!oauthPassword();
   if (!passwordConfigured) {
