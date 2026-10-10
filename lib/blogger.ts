@@ -57,6 +57,15 @@ function blogId() {
   return process.env.BLOGGER_BLOG_ID?.trim() || "";
 }
 
+function isTargetBlogUrl(value: string | undefined) {
+  if (!value) return false;
+  try {
+    return new URL(value).hostname.toLowerCase() === "mrkdigitalservices.blogspot.com";
+  } catch {
+    return false;
+  }
+}
+
 export async function getBlog() {
   const configuredId = blogId();
   if (configuredId) {
@@ -64,7 +73,7 @@ export async function getBlog() {
   }
   const result = await bloggerFetch<{ items?: Array<{ id: string; name: string; url: string }> }>("/users/self/blogs");
   const blogs = result.items || [];
-  const match = blogs.find((blog) => blog.url?.replace(/\/$/, "").toLowerCase() === "https://mrkdigitalservices.blogspot.com");
+  const match = blogs.find((blog) => isTargetBlogUrl(blog.url));
   if (!match) {
     throw new Error("Could not find https://mrkdigitalservices.blogspot.com in the authorized Google account. Set BLOGGER_BLOG_ID to the correct blog ID.");
   }
