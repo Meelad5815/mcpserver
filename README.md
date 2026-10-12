@@ -134,6 +134,22 @@ When the account supports custom MCP apps:
 - Do not expose WordPress credentials in client-side JavaScript.
 - Do not put secrets in GitHub, `mcp.json`, browser storage, or chat messages.
 
+## WordPress.com Free-site mode (read-only)
+
+This mode is separate from the self-hosted WordPress Application Password mode above. It uses the WordPress.com REST API with a server-side OAuth access token and intentionally registers **read-only** MCP tools while the integration is being verified.
+
+Set these Vercel environment variables for the deployment:
+
+```env
+WORDPRESS_PROVIDER=wordpress.com
+WORDPRESS_COM_SITE=hafizmuhammadmeeladraza-dbacn.wordpress.com
+WORDPRESS_COM_ACCESS_TOKEN=your-private-wordpress-com-oauth-token
+```
+
+Create an OAuth application in the WordPress.com developer portal and authorize the account that owns the target site. Store the resulting access token only in Vercel Environment Variables; never commit it to GitHub or paste it into a public issue. Keep the existing `MCP_AUTH_TOKEN` / ChatGPT OAuth configuration separate: the WordPress.com token authenticates the server to WordPress.com, while the MCP OAuth configuration authenticates the client to this server.
+
+After setting the variables, redeploy and check `/api/health`. The `configured.wordpress` value must be `true`. The WordPress.com mode currently exposes read-only site, posts, pages, categories, tags, and media tools; write actions remain disabled until API access is verified.
+
 ## WordPress setup
 
 The WordPress site needs the MCP Adapter plugin for the separate Automattic remote-proxy architecture. This repository itself talks to the standard WordPress REST API, so it can also operate independently of the WordPress MCP Adapter.
