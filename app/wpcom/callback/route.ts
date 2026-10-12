@@ -26,7 +26,7 @@ export async function GET(request: Request) {
   const state = url.searchParams.get("state") || "";
   const oauthError = url.searchParams.get("error") || "";
   const cookieHeader = request.headers.get("cookie") || "";
-  const savedState = cookieHeader.match(/(?:^|;\\s*)mrk_wpcom_oauth_state=([a-f0-9]+)/)?.[1] || "";
+  const savedState = cookieHeader.match(/(?:^|;\s*)mrk_wpcom_oauth_state=([a-f0-9]+)/)?.[1] || "";
   const clearCookie = "mrk_wpcom_oauth_state=; HttpOnly; Secure; SameSite=Lax; Path=/wpcom; Max-Age=0";
 
   if (oauthError) {
