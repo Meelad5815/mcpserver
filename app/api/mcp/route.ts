@@ -1,16 +1,20 @@
 import { createMcpHandler, withMcpAuth } from "mcp-handler";
 import { registerWordPressTools } from "@/lib/mcp-tools";
+import { registerBloggerTools } from "@/lib/blogger-tools";
 import { getResourceUrl, verifyAccessToken } from "@/lib/oauth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const handler = createMcpHandler(
-  (server) => registerWordPressTools(server),
+  (server) => {
+    registerWordPressTools(server);
+    registerBloggerTools(server);
+  },
   {
-    serverInfo: { name: "MRK WordPress MCP", version: "1.2.0" },
+    serverInfo: { name: "MRK Digital WordPress + Blogger MCP", version: "1.3.0" },
     instructions:
-      "MRK WordPress MCP controls the configured WordPress site through its REST API. Prefer drafts. Publishing and deletion are consequential actions and require explicit intent.",
+      "MRK MCP provides separate WordPress and Blogger tools. Blogger tools use the configured Google OAuth refresh token. Prefer draft-first editing. Publishing is consequential and requires explicit user approval for the exact post. Read-only tools should be tested before write tools.",
   },
 );
 
