@@ -138,15 +138,22 @@ When the account supports custom MCP apps:
 
 This mode is separate from the self-hosted WordPress Application Password mode above. It uses the WordPress.com REST API with a server-side OAuth access token and intentionally registers **read-only** MCP tools while the integration is being verified.
 
-Set these Vercel environment variables for the deployment:
+Register this exact redirect URI in the WordPress.com Developer Portal:
+
+`https://mcpserver-drab.vercel.app/wpcom/callback`
+
+Set these Vercel Production environment variables:
 
 ```env
 WORDPRESS_PROVIDER=wordpress.com
 WORDPRESS_COM_SITE=hafizmuhammadmeeladraza-dbacn.wordpress.com
+WORDPRESS_COM_CLIENT_ID=your-wordpress-com-client-id
+WORDPRESS_COM_CLIENT_SECRET=your-private-wordpress-com-client-secret
+WORDPRESS_COM_REDIRECT_URI=https://mcpserver-drab.vercel.app/wpcom/callback
 WORDPRESS_COM_ACCESS_TOKEN=your-private-wordpress-com-oauth-token
 ```
 
-Create an OAuth application in the WordPress.com developer portal and authorize the account that owns the target site. Store the resulting access token only in Vercel Environment Variables; never commit it to GitHub or paste it into a public issue. Keep the existing `MCP_AUTH_TOKEN` / ChatGPT OAuth configuration separate: the WordPress.com token authenticates the server to WordPress.com, while the MCP OAuth configuration authenticates the client to this server.
+After the callback is deployed, open `https://mcpserver-drab.vercel.app/wpcom/connect` and authorize the WordPress.com account that owns the target site. The callback exchanges the authorization code and displays the access token once; copy it directly into the Vercel `WORDPRESS_COM_ACCESS_TOKEN` variable, save, and redeploy. Do not send the token in chat or commit it to GitHub. Keep this WordPress.com OAuth separate from the MCP OAuth used by ChatGPT.
 
 After setting the variables, redeploy and check `/api/health`. The `configured.wordpress` value must be `true`. The WordPress.com mode currently exposes read-only site, posts, pages, categories, tags, and media tools; write actions remain disabled until API access is verified.
 
