@@ -104,18 +104,19 @@ export async function GET(request: Request) {
 
   const html = `<!doctype html>
 <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width">
-<title>MRK WordPress MCP — Authorize</title>
+<title>MRK Digital WordPress + Blogger MCP — Authorize</title>
 <style>body{font-family:system-ui,sans-serif;max-width:480px;margin:10vh auto;padding:24px}form{display:grid;gap:12px}input{padding:12px;font-size:16px}button{padding:12px;font-size:16px;font-weight:600}small{color:#666}</style>
 </head><body>
-<h1>MRK WordPress MCP</h1>
-<p><strong>${htmlEscape(client.client_name || "ChatGPT")}</strong> is requesting access to your WordPress MCP server.</p>
+<h1>MRK Digital WordPress + Blogger MCP</h1>
+<p><strong>${htmlEscape(client.client_name || "ChatGPT")}</strong> is requesting access to your private MRK Digital MCP server.</p>
+<p>This server can expose separate WordPress and Blogger tools, depending on the tools enabled by your connection.</p>
 <p>Requested permissions: <code>${htmlEscape(params.get("scope") || "read")}</code></p>
 <form method="post" action="${escapedAction}">
 <input type="hidden" name="oauth_params" value="${htmlEscape(params.toString())}">
 <label>Username<input name="username" autocomplete="username" value="${htmlEscape(oauthUsername())}"></label>
 <label>Password<input name="password" type="password" autocomplete="current-password" required></label>
 <button type="submit">Authorize</button>
-<small>This is the private MRK MCP authorization server.</small>
+<small>Private MRK Digital MCP authorization server. Only authorize if you initiated this connection and trust this server.</small>
 </form></body></html>`;
 
   return new Response(html, { headers: { "Content-Type": "text/html; charset=utf-8" } });
