@@ -1,6 +1,7 @@
 import type { McpServer } from "@modelcontextprotocol/server";
 import { z } from "zod";
 import * as wp from "./wordpress";
+import { registerWordPressComTools } from "./wordpress-com";
 
 const out=(v:unknown)=>({content:[{type:"text" as const,text:JSON.stringify(v,null,2)}]});
 const wrap=(server:McpServer,name:string,description:string,inputSchema:any,fn:(a:any)=>Promise<any>)=>{
@@ -14,6 +15,10 @@ const q=z.object({params:z.string().optional().default("")});
 const slug=(s:string)=>s.toLowerCase().trim().replace(/[^a-z0-9\s-]/g,"").replace(/\s+/g,"-").replace(/-+/g,"-").slice(0,90);
 
 export function registerWordPressTools(server:McpServer){
+ if (process.env.WORDPRESS_PROVIDER?.trim().toLowerCase() === "wordpress.com") {
+  registerWordPressComTools(server);
+  return;
+ }
  wrap(server,"wp_health_check","Check WordPress REST connectivity and the authenticated integration user.",z.object({}),async()=>({ok:true,wordpress_url:process.env.WORDPRESS_URL,user:await wp.currentUser()}));
  wrap(server,"wp_site_status","Inspect WordPress post types.",z.object({}),async()=>wp.siteStatus());
  wrap(server,"wp_get_current_user","Get the authenticated WordPress user.",z.object({}),async()=>wp.currentUser());
