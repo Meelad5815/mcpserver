@@ -7,7 +7,7 @@ function config(name: string) {
   return process.env[name]?.trim() || "";
 }
 
-export async function GET(request: Request) {
+export async function GET() {
   const clientId = config("WORDPRESS_COM_CLIENT_ID");
   const site = config("WORDPRESS_COM_SITE");
   const redirectUri = config("WORDPRESS_COM_REDIRECT_URI");
@@ -27,11 +27,14 @@ export async function GET(request: Request) {
   authorize.searchParams.set("blog", site);
   authorize.searchParams.set("state", state);
 
-  const response = Response.redirect(authorize.toString(), 302);
-  response.headers.append(
-    "Set-Cookie",
-    `mrk_wpcom_oauth_state=${state}; HttpOnly; Secure; SameSite=Lax; Path=/wpcom; Max-Age=600`,
-  );
-  response.headers.set("Cache-Control", "no-store");
-  return response;
+  // Response.redirect() creates immutable headers in the Vercel Node runtime.
+  // Construct the redirect response with headers up front so Set-Cookie can be set safely.
+  return new Response(null, {
+    status: 302,
+    headers: {
+      Location: authorize.toString(),
+      "Set-Cookie": `mrk_wpcom_oauth_state=${state}; HttpOnly; Secure; SameSite=Lax; Path=/wpcom; Max-Age=600`,
+      "Cache-Control": "no-store",
+    },
+  });
 }
