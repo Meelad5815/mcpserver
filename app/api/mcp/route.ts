@@ -35,7 +35,7 @@ const verifyToken = async (_req: Request, bearerToken?: string) => {
 
   return {
     token: bearerToken,
-    scopes: payload.scope.split(/\\s+/).filter(Boolean),
+    scopes: payload.scope.split(/\s+/).filter(Boolean),
     clientId: payload.client_id,
     extra: { userId: payload.sub, resource: getResourceUrl() },
   };
