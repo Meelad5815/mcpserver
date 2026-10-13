@@ -126,13 +126,16 @@ export async function createDraft(args: { title: string; content: string; labels
 
 export async function updateDraft(args: { postId: string; title?: string; content?: string; labels?: string[] }) {
   const current = await getPost(args.postId);
+  if (current.status !== "DRAFT") {
+    throw new Error(`Post ${args.postId} is not a draft (status: ${current.status || "unknown"}). Refusing to edit a live post with the draft-only tool.`);
+  }
   const id = await resolveBlogId();
   const body = {
     title: args.title ?? current.title ?? "",
     content: args.content ?? current.content ?? "",
     ...(args.labels !== undefined ? { labels: args.labels } : current.labels ? { labels: current.labels } : {}),
   };
-  return bloggerFetch<BloggerPost>(`/blogs/${encodeURIComponent(id)}/posts/${encodeURIComponent(args.postId)}?isDraft=true`, {
+  return bloggerFetch<BloggerPost>(`/blogs/${encodeURIComponent(id)}/posts/${encodeURIComponent(args.postId)}`, {
     method: "PUT",
     body: JSON.stringify(body),
   });
