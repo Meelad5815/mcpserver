@@ -1,5 +1,6 @@
 import { createMcpHandler, withMcpAuth } from "mcp-handler";
 import { registerBloggerTools } from "@/lib/blogger-tools";
+import { registerBloggerPageTools } from "@/lib/blogger-page-tools";
 import { getBloggerResourceUrl, verifyAccessToken } from "@/lib/oauth";
 
 export const runtime = "nodejs";
@@ -8,12 +9,13 @@ export const dynamic = "force-dynamic";
 const handler = createMcpHandler(
   (server) => {
     registerBloggerTools(server);
+    registerBloggerPageTools(server);
   },
   {
-    serverInfo: { name: "MRK Digital Blogger MCP", version: "1.0.0" },
+    serverInfo: { name: "MRK Digital Blogger MCP", version: "1.1.0" },
     verboseLogs: true,
     instructions:
-      "This server exposes Blogger tools only for https://mrkdigitalservices.blogspot.com. Use blogger_health_check first. Read-only Blogger checks do not change posts. Draft creation, draft updates, and publishing are separate actions; publishing requires explicit user approval for the exact post.",
+      "This server exposes Blogger tools only for https://mrkdigitalservices.blogspot.com. Use blogger_health_check first. Permanent-page tools create and update live pages immediately; only use them for changes the user has authorized. Post publishing is separate and requires explicit approval for the exact post.",
   },
 );
 
