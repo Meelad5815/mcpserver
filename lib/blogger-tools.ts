@@ -13,9 +13,19 @@ function register(
   inputSchema: any,
   action: (args: any) => Promise<unknown>,
 ) {
-  server.registerTool(name, { description, inputSchema }, async (args: any) => {
+  // This MCP server version expects a raw Zod shape, not a ZodObject instance.
+  // Keep the complete Zod schema for runtime validation (including refinements/defaults).
+  const toolInputSchema = inputSchema?.shape ?? inputSchema;
+  server.registerTool(name, { description, inputSchema: toolInputSchema }, async (args: any) => {
     try {
-      return output({ ok: true, result: await action(args) });
+      const parsed = inputSchema?.safeParse ? inputSchema.safeParse(args) : { success: true as const, data: args };
+      if (!parsed.success) {
+        return {
+          content: [{ type: "text" as const, text: JSON.stringify({ ok: false, error: parsed.error.message }, null, 2) }],
+          isError: true,
+        };
+      }
+      return output({ ok: true, result: await action(parsed.data) });
     } catch (error) {
       return {
         content: [{
