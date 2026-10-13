@@ -241,7 +241,7 @@ export function registerBloggerTools(server: McpServer) {
   register(
     server,
     "blogger_update_page_draft",
-    "Update a Blogger page using the draft-only API path. Requires the exact page ID and at least one field. If Blogger reports that the page is not a draft, inspect the page and do not retry through another endpoint without user intent.",
+    "Update a Blogger page only if Blogger reports its current status is DRAFT. Requires the exact page ID and at least one field. Live pages are rejected by the implementation.",
     z.object({
       pageId: postId,
       title: z.string().trim().min(1).max(300).optional(),
@@ -250,5 +250,13 @@ export function registerBloggerTools(server: McpServer) {
       message: "Provide at least one field to update.",
     }),
     async (args) => blogger.updatePageDraft(args),
+  );
+
+  register(
+    server,
+    "blogger_publish_page",
+    "Publish a Blogger static page only after the user has explicitly approved publishing that exact page. This action is consequential; the implementation verifies that the page is currently a draft.",
+    z.object({ pageId: postId }),
+    async ({ pageId }) => blogger.publishPage(pageId),
   );
 }
