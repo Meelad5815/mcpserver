@@ -259,4 +259,57 @@ export function registerBloggerTools(server: McpServer) {
     z.object({ pageId: postId }),
     async ({ pageId }) => blogger.publishPage(pageId),
   );
+
+  register(
+    server,
+    "blogger_list_comments",
+    "List Blogger comments across the blog or for one exact post. Read-only. Status may be LIVE, NEEDS_REVIEW, SPAM, or TRASH.",
+    z.object({
+      maxResults: z.number().int().min(1).max(100).optional().default(20),
+      pageToken: z.string().optional(),
+      status: z.enum(["LIVE", "NEEDS_REVIEW", "SPAM", "TRASH"]).optional(),
+      postId: postId.optional(),
+    }),
+    async (args) => blogger.listComments(args),
+  );
+
+  register(
+    server,
+    "blogger_get_pageviews",
+    "Read Blogger pageview statistics for all time, the last 7 days, or the last 30 days. Read-only.",
+    z.object({ range: z.enum(["all", "7days", "30days"]).optional().default("30days") }),
+    async ({ range }) => blogger.getPageViews(range),
+  );
+
+  register(
+    server,
+    "blogger_revert_post_to_draft",
+    "Move a live Blogger post back to draft only after the user explicitly approves that exact post. This removes it from public view; the implementation verifies status LIVE.",
+    z.object({ postId }),
+    async ({ postId }) => blogger.revertPostToDraft(postId),
+  );
+
+  register(
+    server,
+    "blogger_revert_page_to_draft",
+    "Move a live Blogger page back to draft only after the user explicitly approves that exact page. This removes it from public view; the implementation verifies status LIVE.",
+    z.object({ pageId: postId }),
+    async ({ pageId }) => blogger.revertPageToDraft(pageId),
+  );
+
+  register(
+    server,
+    "blogger_delete_draft_post",
+    "Permanently delete a Blogger draft post only after the user explicitly approves deleting that exact post. Requires ID and exact current title; rejects live posts.",
+    z.object({ postId, expectedTitle: z.string().trim().min(1).max(300) }),
+    async (args) => blogger.deleteDraftPost(args),
+  );
+
+  register(
+    server,
+    "blogger_delete_draft_page",
+    "Permanently delete a Blogger draft page only after the user explicitly approves deleting that exact page. Requires ID and exact current title; rejects live pages.",
+    z.object({ pageId: postId, expectedTitle: z.string().trim().min(1).max(300) }),
+    async (args) => blogger.deleteDraftPage(args),
+  );
 }
