@@ -144,3 +144,90 @@ export async function publishPost(postId: string) {
     method: "POST",
   });
 }
+
+
+export type BloggerPage = {
+  id?: string;
+  title?: string;
+  content?: string;
+  url?: string;
+  status?: string;
+  published?: string;
+  updated?: string;
+  [key: string]: unknown;
+};
+
+export async function listPages(args: { maxResults?: number; pageToken?: string } = {}) {
+  const id = await resolveBlogId();
+  const query = new URLSearchParams();
+  query.set("maxResults", String(Math.min(100, Math.max(1, args.maxResults ?? 20))));
+  if (args.pageToken) query.set("pageToken", args.pageToken);
+  return bloggerFetch<{ items?: BloggerPage[]; nextPageToken?: string; kind?: string }>(
+    `/blogs/${encodeURIComponent(id)}/pages?${query.toString()}`,
+  );
+}
+
+export async function getPage(pageId: string) {
+  const id = await resolveBlogId();
+  return bloggerFetch<BloggerPage>(`/blogs/${encodeURIComponent(id)}/pages/${encodeURIComponent(pageId)}`);
+}
+
+export async function createPageDraft(args: { title: string; content: string }) {
+  const id = await resolveBlogId();
+  return bloggerFetch<BloggerPage>(`/blogs/${encodeURIComponent(id)}/pages/?isDraft=true`, {
+    method: "POST",
+    body: JSON.stringify({ title: args.title.trim(), content: args.content }),
+  });
+}
+
+export async function updatePageDraft(args: { pageId: string; title?: string; content?: string }) {
+  const current = await getPage(args.pageId);
+  const id = await resolveBlogId();
+  const body = {
+    title: args.title ?? current.title ?? "",
+    content: args.content ?? current.content ?? "",
+  };
+  return bloggerFetch<BloggerPage>(
+    `/blogs/${encodeURIComponent(id)}/pages/${encodeURIComponent(args.pageId)}?isDraft=true`,
+    { method: "PUT", body: JSON.stringify(body) },
+  );
+}
+
+/** Read-only cross-resource health snapshot. It intentionally never mutates site content. */
+export async function auditBlog() {
+  const blog = await getBlog() as Record<string, unknown>;
+  const id = String(blog.id || await resolveBlogId());
+  const [postsResult, pagesResult] = await Promise.all([
+    bloggerFetch<{ items?: BloggerPost[]; nextPageToken?: string }>(
+      `/blogs/${encodeURIComponent(id)}/posts?maxResults=100&fetchBodies=false`,
+    ),
+    bloggerFetch<{ items?: BloggerPage[]; nextPageToken?: string }>(
+      `/blogs/${encodeURIComponent(id)}/pages?maxResults=100`,
+    ),
+  ]);
+  const posts = postsResult.items || [];
+  const pages = pagesResult.items || [];
+  return {
+    ok: true,
+    checkedAt: new Date().toISOString(),
+    blog: {
+      id: blog.id,
+      name: blog.name,
+      url: blog.url,
+      description: blog.description,
+      locale: blog.locale,
+    },
+    content: {
+      postsReturned: posts.length,
+      postsHasMore: Boolean(postsResult.nextPageToken),
+      pagesReturned: pages.length,
+      pagesHasMore: Boolean(pagesResult.nextPageToken),
+      pages: pages.map((page) => ({ id: page.id, title: page.title, url: page.url, status: page.status })),
+    },
+    limitations: [
+      "This API audit does not inspect or modify the Blogger theme/template.",
+      "Blogger API v3 does not expose full theme HTML/CSS editing operations; use Blogger Theme > Edit HTML for template changes after backing up the theme.",
+      "Counts are limited to the first 100 items per resource; hasMore flags indicate pagination.",
+    ],
+  };
+}
