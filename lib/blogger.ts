@@ -19,21 +19,37 @@ function required(name: string) {
 }
 
 async function accessToken(): Promise<string> {
-  const response = await fetch("https://oauth2.googleapis.com/token", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      client_id: required("GOOGLE_CLIENT_ID"),
-      client_secret: required("GOOGLE_CLIENT_SECRET"),
-      refresh_token: required("GOOGLE_REFRESH_TOKEN"),
-      grant_type: "refresh_token",
-    }),
-    cache: "no-store",
+  const body = new URLSearchParams({
+    client_id: required("GOOGLE_CLIENT_ID"),
+    client_secret: required("GOOGLE_CLIENT_SECRET"),
+    refresh_token: required("GOOGLE_REFRESH_TOKEN"),
+    grant_type: "refresh_token",
   });
-  const data = await response.json().catch(() => ({})) as { access_token?: string; error?: string; error_description?: string };
-  if (!response.ok || !data.access_token) {
-    throw new Error(`Google OAuth token refresh failed (${response.status}): ${data.error_description || data.error || "unknown error"}`);
+  let response: Response;
+  try {
+    response = await fetch("https://oauth2.googleapis.com/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body,
+      cache: "no-store",
+    });
+  } catch (error) {
+    console.error("[blogger-diagnostic]", JSON.stringify({
+      stage: "google_oauth_network",
+      errorName: error instanceof Error ? error.name : "UnknownError",
+    }));
+    throw new Error("Google OAuth token refresh request failed before receiving an HTTP response.");
   }
+  const data = await response.json().catch(() => ({})) as { access_token?: string; error?: string };
+  if (!response.ok || !data.access_token) {
+    console.error("[blogger-diagnostic]", JSON.stringify({
+      stage: "google_oauth_response",
+      status: response.status,
+      errorCode: data.error || "unknown_error",
+    }));
+    throw new Error(`Google OAuth token refresh failed (${response.status}): ${data.error || "unknown error"}`);
+  }
+  console.info("[blogger-diagnostic]", JSON.stringify({ stage: "google_oauth_response", status: response.status, ok: true }));
   return data.access_token;
 }
 
@@ -43,13 +59,34 @@ async function bloggerFetch<T>(path: string, init: RequestInit = {}): Promise<T>
   headers.set("Authorization", `Bearer ${token}`);
   headers.set("Accept", "application/json");
   if (init.body && !headers.has("Content-Type")) headers.set("Content-Type", "application/json");
-  const response = await fetch(`${API}${path}`, { ...init, headers, cache: "no-store" });
+  let response: Response;
+  try {
+    response = await fetch(`${API}${path}`, { ...init, headers, cache: "no-store" });
+  } catch (error) {
+    console.error("[blogger-diagnostic]", JSON.stringify({
+      stage: "blogger_api_network",
+      errorName: error instanceof Error ? error.name : "UnknownError",
+      method: init.method || "GET",
+    }));
+    throw new Error("Blogger API request failed before receiving an HTTP response.");
+  }
   const text = await response.text();
   let payload: unknown = null;
   try { payload = text ? JSON.parse(text) : null; } catch { payload = text; }
   if (!response.ok) {
-    throw new Error(`Blogger API ${response.status}: ${(typeof payload === "string" ? payload : JSON.stringify(payload)).slice(0, 1200)}`);
+    const errorPayload = payload as { error?: { status?: string; message?: string; errors?: Array<{ reason?: string }> } } | null;
+    const reason = errorPayload && typeof errorPayload === "object"
+      ? errorPayload.error?.errors?.[0]?.reason || errorPayload.error?.status || "unknown_error"
+      : "unknown_error";
+    console.error("[blogger-diagnostic]", JSON.stringify({
+      stage: "blogger_api_response",
+      status: response.status,
+      reason,
+      method: init.method || "GET",
+    }));
+    throw new Error(`Blogger API ${response.status}: ${errorPayload && typeof errorPayload === "object" ? errorPayload.error?.message || reason : reason}`);
   }
+  console.info("[blogger-diagnostic]", JSON.stringify({ stage: "blogger_api_response", status: response.status, ok: true, method: init.method || "GET" }));
   return payload as T;
 }
 
