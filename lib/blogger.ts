@@ -182,14 +182,29 @@ export async function createPageDraft(args: { title: string; content: string }) 
 
 export async function updatePageDraft(args: { pageId: string; title?: string; content?: string }) {
   const current = await getPage(args.pageId);
+  if (current.status !== "DRAFT") {
+    throw new Error(`Page ${args.pageId} is not a draft (status: ${current.status || "unknown"}). Refusing to edit a live page with the draft-only tool.`);
+  }
   const id = await resolveBlogId();
   const body = {
     title: args.title ?? current.title ?? "",
     content: args.content ?? current.content ?? "",
   };
   return bloggerFetch<BloggerPage>(
-    `/blogs/${encodeURIComponent(id)}/pages/${encodeURIComponent(args.pageId)}?isDraft=true`,
+    `/blogs/${encodeURIComponent(id)}/pages/${encodeURIComponent(args.pageId)}`,
     { method: "PUT", body: JSON.stringify(body) },
+  );
+}
+
+export async function publishPage(pageId: string) {
+  const current = await getPage(pageId);
+  if (current.status !== "DRAFT") {
+    throw new Error(`Page ${pageId} is not a draft (status: ${current.status || "unknown"}); refusing to publish.`);
+  }
+  const id = await resolveBlogId();
+  return bloggerFetch<BloggerPage>(
+    `/blogs/${encodeURIComponent(id)}/pages/${encodeURIComponent(pageId)}/publish`,
+    { method: "POST" },
   );
 }
 
