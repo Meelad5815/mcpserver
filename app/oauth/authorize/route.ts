@@ -1,6 +1,7 @@
 import {
   getIssuer,
   getResourceUrl,
+  getBloggerResourceUrl,
   htmlEscape,
   issueAuthorizationCode,
   oauthPassword,
@@ -89,6 +90,11 @@ export async function GET(request: Request) {
   const clientId = params.get("client_id") || "";
   const redirectUri = params.get("redirect_uri") || "";
 
+  const isBloggerResource = (params.get("resource") || getResourceUrl()) === getBloggerResourceUrl();
+  const serverTitle = isBloggerResource ? "MRK Digital Blogger MCP" : "MRK Digital WordPress + Blogger MCP";
+  const serverDescription = isBloggerResource
+    ? "This connection exposes Blogger tools only for mrkdigitalservices.blogspot.com."
+    : "This connection exposes the configured WordPress and Blogger tools.";
   const passwordConfigured = !!oauthPassword();
   if (!passwordConfigured) {
     return new Response("OAuth is not configured: set OAUTH_PASSWORD or DASHBOARD_PASSWORD.", { status: 503 });
@@ -104,7 +110,7 @@ export async function GET(request: Request) {
 
   const html = `<!doctype html>
 <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width">
-<title>MRK Digital WordPress + Blogger MCP — Authorize</title>
+<title>${serverTitle} — Authorize</title>
 <style>body{font-family:system-ui,sans-serif;max-width:480px;margin:10vh auto;padding:24px}form{display:grid;gap:12px}input{padding:12px;font-size:16px}button{padding:12px;font-size:16px;font-weight:600}small{color:#666}</style>
 </head><body>
 <h1>MRK Digital WordPress + Blogger MCP</h1>
