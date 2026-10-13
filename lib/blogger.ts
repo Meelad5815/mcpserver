@@ -19,17 +19,18 @@ function required(name: string) {
 }
 
 async function accessToken(): Promise<string> {
+  const body = new URLSearchParams({
+    client_id: required("GOOGLE_CLIENT_ID"),
+    client_secret: required("GOOGLE_CLIENT_SECRET"),
+    refresh_token: required("GOOGLE_REFRESH_TOKEN"),
+    grant_type: "refresh_token",
+  });
   let response: Response;
   try {
     response = await fetch("https://oauth2.googleapis.com/token", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      client_id: required("GOOGLE_CLIENT_ID"),
-      client_secret: required("GOOGLE_CLIENT_SECRET"),
-      refresh_token: required("GOOGLE_REFRESH_TOKEN"),
-      grant_type: "refresh_token",
-    }),
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body,
       cache: "no-store",
     });
   } catch (error) {
@@ -39,7 +40,7 @@ async function accessToken(): Promise<string> {
     }));
     throw new Error("Google OAuth token refresh request failed before receiving an HTTP response.");
   }
-  const data = await response.json().catch(() => ({})) as { access_token?: string; error?: string; error_description?: string };
+  const data = await response.json().catch(() => ({})) as { access_token?: string; error?: string };
   if (!response.ok || !data.access_token) {
     console.error("[blogger-diagnostic]", JSON.stringify({
       stage: "google_oauth_response",
