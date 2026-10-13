@@ -199,4 +199,56 @@ export function registerBloggerTools(server: McpServer) {
     z.object({ postId }),
     async ({ postId }) => blogger.publishPost(postId),
   );
+
+  register(
+    server,
+    "blogger_full_audit",
+    "Run a read-only Blogger site audit: blog metadata, first 100 posts/pages, pagination indicators, and theme-management limitations. Does not modify content or settings.",
+    z.object({}),
+    async () => blogger.auditBlog(),
+  );
+
+  register(
+    server,
+    "blogger_list_pages",
+    "List Blogger static pages with pagination. Read-only.",
+    z.object({
+      maxResults: z.number().int().min(1).max(100).optional().default(20),
+      pageToken: z.string().optional(),
+    }),
+    async (args) => blogger.listPages(args),
+  );
+
+  register(
+    server,
+    "blogger_get_page",
+    "Read one Blogger static page by page ID. Read-only.",
+    z.object({ pageId: postId }),
+    async ({ pageId }) => blogger.getPage(pageId),
+  );
+
+  register(
+    server,
+    "blogger_create_page_draft",
+    "Create a Blogger static page as a draft for review. This tool does not intentionally publish the page.",
+    z.object({
+      title: z.string().trim().min(1).max(300),
+      content: z.string().min(1).max(100000),
+    }),
+    async (args) => blogger.createPageDraft(args),
+  );
+
+  register(
+    server,
+    "blogger_update_page_draft",
+    "Update a Blogger page using the draft-only API path. Requires the exact page ID and at least one field. If Blogger reports that the page is not a draft, inspect the page and do not retry through another endpoint without user intent.",
+    z.object({
+      pageId: postId,
+      title: z.string().trim().min(1).max(300).optional(),
+      content: z.string().min(1).max(100000).optional(),
+    }).refine((args) => args.title !== undefined || args.content !== undefined, {
+      message: "Provide at least one field to update.",
+    }),
+    async (args) => blogger.updatePageDraft(args),
+  );
 }
