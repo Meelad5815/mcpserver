@@ -249,3 +249,87 @@ export async function auditBlog() {
     ],
   };
 }
+
+
+export type BloggerComment = {
+  id?: string;
+  content?: string;
+  status?: string;
+  author?: { displayName?: string };
+  published?: string;
+  updated?: string;
+  [key: string]: unknown;
+};
+
+export async function listComments(args: { maxResults?: number; pageToken?: string; status?: string; postId?: string } = {}) {
+  const id = await resolveBlogId();
+  const query = new URLSearchParams();
+  query.set("maxResults", String(Math.min(100, Math.max(1, args.maxResults ?? 20))));
+  if (args.pageToken) query.set("pageToken", args.pageToken);
+  if (args.status) query.set("status", args.status);
+  const path = args.postId
+    ? `/blogs/${encodeURIComponent(id)}/posts/${encodeURIComponent(args.postId)}/comments?${query.toString()}`
+    : `/blogs/${encodeURIComponent(id)}/comments?${query.toString()}`;
+  return bloggerFetch<{ items?: BloggerComment[]; nextPageToken?: string; kind?: string }>(path);
+}
+
+export async function getPageViews(range: "all" | "7days" | "30days" = "30days") {
+  const id = await resolveBlogId();
+  return bloggerFetch<{ blogId?: string; counts?: Array<{ timeRange?: string; count?: string }> }>(
+    `/blogs/${encodeURIComponent(id)}/pageviews?range=${encodeURIComponent(range)}`,
+  );
+}
+
+export async function revertPostToDraft(postId: string) {
+  const current = await getPost(postId);
+  if (current.status !== "LIVE") {
+    throw new Error(`Post ${postId} is not LIVE (status: ${current.status || "unknown"}); refusing to revert.`);
+  }
+  const id = await resolveBlogId();
+  return bloggerFetch<BloggerPost>(
+    `/blogs/${encodeURIComponent(id)}/posts/${encodeURIComponent(postId)}/revert`,
+    { method: "POST" },
+  );
+}
+
+export async function revertPageToDraft(pageId: string) {
+  const current = await getPage(pageId);
+  if (current.status !== "LIVE") {
+    throw new Error(`Page ${pageId} is not LIVE (status: ${current.status || "unknown"}); refusing to revert.`);
+  }
+  const id = await resolveBlogId();
+  return bloggerFetch<BloggerPage>(
+    `/blogs/${encodeURIComponent(id)}/pages/${encodeURIComponent(pageId)}/revert`,
+    { method: "POST" },
+  );
+}
+
+export async function deleteDraftPost(args: { postId: string; expectedTitle: string }) {
+  const current = await getPost(args.postId);
+  if (current.status !== "DRAFT") {
+    throw new Error(`Post ${args.postId} is not a draft (status: ${current.status || "unknown"}); refusing to delete.`);
+  }
+  if ((current.title || "").trim() !== args.expectedTitle.trim()) {
+    throw new Error(`Title mismatch for post ${args.postId}; refusing to delete.`);
+  }
+  const id = await resolveBlogId();
+  return bloggerFetch<{ kind?: string }>(
+    `/blogs/${encodeURIComponent(id)}/posts/${encodeURIComponent(args.postId)}`,
+    { method: "DELETE" },
+  );
+}
+
+export async function deleteDraftPage(args: { pageId: string; expectedTitle: string }) {
+  const current = await getPage(args.pageId);
+  if (current.status !== "DRAFT") {
+    throw new Error(`Page ${args.pageId} is not a draft (status: ${current.status || "unknown"}); refusing to delete.`);
+  }
+  if ((current.title || "").trim() !== args.expectedTitle.trim()) {
+    throw new Error(`Title mismatch for page ${args.pageId}; refusing to delete.`);
+  }
+  const id = await resolveBlogId();
+  return bloggerFetch<{ kind?: string }>(
+    `/blogs/${encodeURIComponent(id)}/pages/${encodeURIComponent(args.pageId)}`,
+    { method: "DELETE" },
+  );
+}
