@@ -13,7 +13,8 @@ const handler = createMcpHandler(
     registerBloggerTools(server);
   },
   {
-    serverInfo: { name: "MRK Digital WordPress + Blogger MCP", version: "1.3.0" },
+    serverInfo: { name: "MRK Digital WordPress + Blogger MCP", version: "1.3.1" },
+    verboseLogs: true,
     instructions:
       "MRK MCP provides separate WordPress and Blogger tools. Blogger tools use the configured Google OAuth refresh token. Prefer draft-first editing. Publishing is consequential and requires explicit user approval for the exact post. Read-only tools should be tested before write tools.",
   },
