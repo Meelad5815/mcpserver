@@ -87,7 +87,7 @@ export async function getPage(pageId: string) {
 }
 
 export async function createLivePage(args: { title: string; content: string }) {
-  const id = blogId();
+  const id = await blogId();
   return bloggerFetch<BloggerPage>(`/blogs/${encodeURIComponent(id)}/pages/`, {
     method: "POST",
     body: JSON.stringify({ title: args.title.trim(), content: args.content }),
@@ -95,7 +95,7 @@ export async function createLivePage(args: { title: string; content: string }) {
 }
 
 export async function updatePage(args: { pageId: string; title?: string; content?: string }) {
-  const id = blogId();
+  const id = await blogId();
   const current = await getPage(args.pageId);
   const body = {
     title: args.title ?? current.title ?? "",
