@@ -1,6 +1,6 @@
-# MRK WordPress MCP
+# MRK Digital WordPress + Blogger MCP
 
-Secure MCP middleware for controlling a WordPress site through the WordPress REST API.
+Secure MCP middleware for managing the MRK WordPress site through the WordPress REST API and the MRK Digital Blogger blog through Blogger API v3.
 
 ## Architecture
 
