@@ -35,7 +35,7 @@ const verifyToken = async (_req: Request, bearerToken?: string) => {
 
   return {
     token: bearerToken,
-    scopes: payload.scope.split(/\s+/).filter(Boolean),
+    scopes: payload.scope.split(/\\s+/).filter(Boolean),
     clientId: payload.client_id,
     extra: { userId: payload.sub, resource: getResourceUrl() },
   };
@@ -46,6 +46,26 @@ const authHandler = withMcpAuth(handler, verifyToken, {
   resourceMetadataPath: "/.well-known/oauth-protected-resource",
 });
 
+async function requestSummary(request: Request) {
+  const summary: Record<string, unknown> = {
+    contentType: request.headers.get("content-type") || "missing",
+    accept: request.headers.get("accept") || "missing",
+    protocolVersion: request.headers.get("mcp-protocol-version") || "missing",
+    authorizationPresent: Boolean(request.headers.get("authorization")),
+  };
+  if (request.method === "POST") {
+    try {
+      const body = await request.clone().json() as { method?: unknown; id?: unknown };
+      summary.rpcMethod = typeof body?.method === "string" ? body.method : "missing";
+      summary.rpcIdType = body?.id === undefined ? "missing" : typeof body.id;
+      summary.rpcBodyType = Array.isArray(body) ? "batch" : "object";
+    } catch {
+      summary.rpcMethod = "unparseable";
+    }
+  }
+  return summary;
+}
+
 async function diagnosticHandler(request: Request) {
   const requestId = randomUUID();
   const startedAt = Date.now();
@@ -54,6 +74,7 @@ async function diagnosticHandler(request: Request) {
     requestId,
     method: request.method,
     path: new URL(request.url).pathname,
+    ...(await requestSummary(request)),
   }));
   try {
     const response = await authHandler(request);
@@ -62,8 +83,8 @@ async function diagnosticHandler(request: Request) {
       let bodyPreview = "";
       try {
         bodyPreview = (await response.clone().text()).slice(0, 500)
-          .replace(/Bearer\s+[^\s"'<>]+/gi, "Bearer [REDACTED]")
-          .replace(/(access_token|refresh_token|client_secret|password|authorization)\s*[:=]\s*[^\s,;"'<>]+/gi, "$1=[REDACTED]");
+          .replace(/Bearer\\s+[^\\s"'<>]+/gi, "Bearer [REDACTED]")
+          .replace(/(access_token|refresh_token|client_secret|password|authorization)\\s*[:=]\\s*[^\\s,;"'<>]+/gi, "$1=[REDACTED]");
       } catch {
         bodyPreview = "[unavailable]";
       }
