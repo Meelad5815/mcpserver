@@ -220,26 +220,6 @@ export function registerBloggerTools(server: McpServer) {
 
   register(
     server,
-    "blogger_list_pages",
-    "List Blogger static pages, optionally filtered by status. Read-only.",
-    z.object({
-      maxResults: z.number().int().min(1).max(100).optional().default(20),
-      pageToken: z.string().optional(),
-      status: z.enum(["LIVE", "DRAFT"]).optional(),
-    }),
-    async (args) => blogger.listPages(args),
-  );
-
-  register(
-    server,
-    "blogger_get_page",
-    "Read one Blogger static page by exact page ID. Read-only.",
-    z.object({ pageId: postId }),
-    async ({ pageId }) => blogger.getPage(pageId),
-  );
-
-  register(
-    server,
     "blogger_create_page_draft",
     "Create a Blogger static page as a draft. This tool does not intentionally publish the page.",
     z.object({ title: z.string().trim().min(1).max(300), content: z.string().min(1).max(100000) }),
