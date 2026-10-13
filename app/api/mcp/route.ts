@@ -55,10 +55,16 @@ async function requestSummary(request: Request) {
   };
   if (request.method === "POST") {
     try {
-      const body = await request.clone().json() as { method?: unknown; id?: unknown };
+      const body = await request.clone().json() as { method?: unknown; id?: unknown; params?: { name?: unknown; arguments?: unknown } };
       summary.rpcMethod = typeof body?.method === "string" ? body.method : "missing";
       summary.rpcIdType = body?.id === undefined ? "missing" : typeof body.id;
       summary.rpcBodyType = Array.isArray(body) ? "batch" : "object";
+      if (body?.method === "tools/call") {
+        summary.rpcToolName = typeof body.params?.name === "string" ? body.params.name : "missing";
+        summary.rpcToolArgumentKeys = body.params?.arguments && typeof body.params.arguments === "object" && !Array.isArray(body.params.arguments)
+          ? Object.keys(body.params.arguments as Record<string, unknown>).slice(0, 20)
+          : [];
+      }
     } catch {
       summary.rpcMethod = "unparseable";
     }
