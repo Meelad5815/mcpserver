@@ -2,6 +2,7 @@ import {
   consumeAuthorizationCode,
   getIssuer,
   getResourceUrl,
+  getBloggerResourceUrl,
   issueAccessToken,
   issueRefreshToken,
   verifyRefreshToken,
@@ -35,7 +36,9 @@ export async function POST(request: Request) {
   const form = await request.formData();
   const grantType = String(form.get("grant_type") || "");
   const clientId = String(form.get("client_id") || "");
-  const resource = String(form.get("resource") || getResourceUrl());
+  const requestedResource = String(form.get("resource") || "");
+  const allowedResources = new Set([getResourceUrl(), getBloggerResourceUrl()]);
+  if (requestedResource && !allowedResources.has(requestedResource)) return json({ error: "invalid_target" }, 400);
 
   if (!clientId) return json({ error: "invalid_client" }, 400);
 
@@ -45,12 +48,14 @@ export async function POST(request: Request) {
     const codeVerifier = String(form.get("code_verifier") || "");
     if (!code || !redirectUri || !codeVerifier) return json({ error: "invalid_request" }, 400);
 
-    const payload = await consumeAuthorizationCode(code, { clientId, redirectUri, codeVerifier, resource });
+    const payload = await consumeAuthorizationCode(code, { clientId, redirectUri, codeVerifier, ...(requestedResource ? { resource: requestedResource } : {}) });
     if (!payload) return json({ error: "invalid_grant" }, 400);
 
-    const access = await issueAccessToken({ clientId, scope: payload.scope, resource: getResourceUrl() });
+    const tokenResource = payload.resource || requestedResource || getResourceUrl();
+    if (!allowedResources.has(tokenResource) || (requestedResource && requestedResource !== tokenResource)) return json({ error: "invalid_target" }, 400);
+    const access = await issueAccessToken({ clientId, scope: payload.scope, resource: tokenResource });
     const refresh = payload.scope.includes("offline_access")
-      ? await issueRefreshToken({ clientId, scope: payload.scope, resource: getResourceUrl() })
+      ? await issueRefreshToken({ clientId, scope: payload.scope, resource: tokenResource })
       : undefined;
 
     return json({
@@ -64,13 +69,13 @@ export async function POST(request: Request) {
   if (grantType === "refresh_token") {
     const refreshToken = String(form.get("refresh_token") || "");
     const payload = await verifyRefreshToken(refreshToken);
-    if (!payload || payload.client_id !== clientId || payload.aud !== getResourceUrl()) {
+    if (!payload || payload.client_id !== clientId || !allowedResources.has(payload.aud) || (requestedResource && requestedResource !== payload.aud)) {
       return json({ error: "invalid_grant" }, 400);
     }
 
-    const access = await issueAccessToken({ clientId, scope: payload.scope, resource: getResourceUrl() });
+    const access = await issueAccessToken({ clientId, scope: payload.scope, resource: payload.aud });
     const rotated = payload.scope.includes("offline_access")
-      ? await issueRefreshToken({ clientId, scope: payload.scope, resource: getResourceUrl() })
+      ? await issueRefreshToken({ clientId, scope: payload.scope, resource: payload.aud })
       : undefined;
 
     return json({

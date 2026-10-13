@@ -124,13 +124,12 @@ export async function issueRefreshToken(input: { clientId: string; scope: string
   });
 }
 
-export async function verifyAccessToken(token: string) {
+export async function verifyAccessToken(token: string, expectedResource = getResourceUrl()) {
   const payload = await verifyPayload<{
     typ: string; sub: string; client_id: string; scope: string; aud: string; exp: number;
   }>(token, "access");
   if (!payload) return null;
-  const resource = getResourceUrl();
-  if (payload.aud !== resource) return null;
+  if (payload.aud !== expectedResource) return null;
   return payload;
 }
 
@@ -146,6 +145,10 @@ export function getIssuer() {
 
 export function getResourceUrl() {
   return (process.env.MCP_RESOURCE_URL || getIssuer() + "/api/mcp").replace(/\/$/, "");
+}
+
+export function getBloggerResourceUrl() {
+  return getIssuer() + "/api/blogger-mcp";
 }
 
 export function oauthUsername() {
