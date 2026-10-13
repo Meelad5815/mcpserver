@@ -1,5 +1,7 @@
 const API = "https://www.googleapis.com/blogger/v3";
 
+import { getBlog } from "./blogger";
+
 type BloggerPage = {
   id?: string;
   title?: string;
@@ -57,14 +59,20 @@ async function bloggerFetch<T>(path: string, init: RequestInit = {}): Promise<T>
   return payload as T;
 }
 
-function blogId() {
-  const id = process.env.BLOGGER_BLOG_ID?.trim();
-  if (!id) throw new Error("Missing BLOGGER_BLOG_ID; refusing to write a page to an unverified blog.");
-  return id;
+async function blogId(): Promise<string> {
+  const configured = process.env.BLOGGER_BLOG_ID?.trim();
+  if (configured) return configured;
+  const blog = await getBlog() as { id?: string; url?: string };
+  let hostname = "";
+  try { hostname = new URL(blog.url || "").hostname.toLowerCase(); } catch {}
+  if (!blog.id || hostname !== "mrkdigitalservices.blogspot.com") {
+    throw new Error("Could not verify the configured MRK Digital Blogger blog; refusing page access or writes.");
+  }
+  return blog.id;
 }
 
 export async function listPages(args: { maxResults?: number; pageToken?: string } = {}) {
-  const id = blogId();
+  const id = await blogId();
   const query = new URLSearchParams({ maxResults: String(Math.min(100, Math.max(1, args.maxResults ?? 50))) });
   if (args.pageToken) query.set("pageToken", args.pageToken);
   return bloggerFetch<{ items?: BloggerPage[]; nextPageToken?: string; kind?: string }>(
@@ -74,12 +82,12 @@ export async function listPages(args: { maxResults?: number; pageToken?: string 
 
 export async function getPage(pageId: string) {
   return bloggerFetch<BloggerPage>(
-    `/blogs/${encodeURIComponent(blogId())}/pages/${encodeURIComponent(pageId)}`,
+    `/blogs/${encodeURIComponent(await blogId())}/pages/${encodeURIComponent(pageId)}`,
   );
 }
 
 export async function createLivePage(args: { title: string; content: string }) {
-  const id = blogId();
+  const id = await blogId();
   return bloggerFetch<BloggerPage>(`/blogs/${encodeURIComponent(id)}/pages/`, {
     method: "POST",
     body: JSON.stringify({ title: args.title.trim(), content: args.content }),
@@ -87,7 +95,7 @@ export async function createLivePage(args: { title: string; content: string }) {
 }
 
 export async function updatePage(args: { pageId: string; title?: string; content?: string }) {
-  const id = blogId();
+  const id = await blogId();
   const current = await getPage(args.pageId);
   const body = {
     title: args.title ?? current.title ?? "",

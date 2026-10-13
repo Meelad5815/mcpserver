@@ -163,13 +163,16 @@ export async function createDraft(args: { title: string; content: string; labels
 
 export async function updateDraft(args: { postId: string; title?: string; content?: string; labels?: string[] }) {
   const current = await getPost(args.postId);
+  if (current.status !== "DRAFT") {
+    throw new Error(`Post ${args.postId} is not a draft (status: ${current.status || "unknown"}). Refusing to edit a live post with the draft-only tool.`);
+  }
   const id = await resolveBlogId();
   const body = {
     title: args.title ?? current.title ?? "",
     content: args.content ?? current.content ?? "",
     ...(args.labels !== undefined ? { labels: args.labels } : current.labels ? { labels: current.labels } : {}),
   };
-  return bloggerFetch<BloggerPost>(`/blogs/${encodeURIComponent(id)}/posts/${encodeURIComponent(args.postId)}?isDraft=true`, {
+  return bloggerFetch<BloggerPost>(`/blogs/${encodeURIComponent(id)}/posts/${encodeURIComponent(args.postId)}`, {
     method: "PUT",
     body: JSON.stringify(body),
   });
@@ -180,4 +183,157 @@ export async function publishPost(postId: string) {
   return bloggerFetch<BloggerPost>(`/blogs/${encodeURIComponent(id)}/posts/${encodeURIComponent(postId)}/publish`, {
     method: "POST",
   });
+}
+
+
+export type BloggerPage = {
+  id?: string;
+  title?: string;
+  content?: string;
+  url?: string;
+  status?: string;
+  published?: string;
+  updated?: string;
+  [key: string]: unknown;
+};
+
+export type BloggerComment = {
+  id?: string;
+  content?: string;
+  status?: string;
+  author?: { displayName?: string };
+  published?: string;
+  updated?: string;
+  [key: string]: unknown;
+};
+
+export async function listPages(args: { maxResults?: number; pageToken?: string; status?: string } = {}) {
+  const id = await resolveBlogId();
+  const query = new URLSearchParams();
+  query.set("maxResults", String(Math.min(100, Math.max(1, args.maxResults ?? 20))));
+  query.set("fetchBodies", "true");
+  if (args.pageToken) query.set("pageToken", args.pageToken);
+  if (args.status) query.set("status", args.status);
+  return bloggerFetch<{ items?: BloggerPage[]; nextPageToken?: string; kind?: string }>(
+    `/blogs/${encodeURIComponent(id)}/pages?${query.toString()}`,
+  );
+}
+
+export async function getPage(pageId: string) {
+  const id = await resolveBlogId();
+  return bloggerFetch<BloggerPage>(`/blogs/${encodeURIComponent(id)}/pages/${encodeURIComponent(pageId)}`);
+}
+
+export async function createPageDraft(args: { title: string; content: string }) {
+  const id = await resolveBlogId();
+  return bloggerFetch<BloggerPage>(`/blogs/${encodeURIComponent(id)}/pages?isDraft=true`, {
+    method: "POST",
+    body: JSON.stringify({ title: args.title.trim(), content: args.content }),
+  });
+}
+
+export async function updatePageDraft(args: { pageId: string; title?: string; content?: string }) {
+  const current = await getPage(args.pageId);
+  if (current.status !== "DRAFT") {
+    throw new Error(`Page ${args.pageId} is not a draft (status: ${current.status || "unknown"}). Refusing to edit a live page with the draft-only tool.`);
+  }
+  const id = await resolveBlogId();
+  return bloggerFetch<BloggerPage>(`/blogs/${encodeURIComponent(id)}/pages/${encodeURIComponent(args.pageId)}`, {
+    method: "PUT",
+    body: JSON.stringify({
+      title: args.title ?? current.title ?? "",
+      content: args.content ?? current.content ?? "",
+    }),
+  });
+}
+
+export async function publishPage(pageId: string) {
+  const current = await getPage(pageId);
+  if (current.status !== "DRAFT") {
+    throw new Error(`Page ${pageId} is not a draft (status: ${current.status || "unknown"}); refusing to publish.`);
+  }
+  const id = await resolveBlogId();
+  return bloggerFetch<BloggerPage>(
+    `/blogs/${encodeURIComponent(id)}/pages/${encodeURIComponent(pageId)}/publish`,
+    { method: "POST" },
+  );
+}
+
+export async function listComments(args: { maxResults?: number; pageToken?: string; status?: string; postId?: string } = {}) {
+  const id = await resolveBlogId();
+  const query = new URLSearchParams();
+  query.set("maxResults", String(Math.min(100, Math.max(1, args.maxResults ?? 20))));
+  if (args.pageToken) query.set("pageToken", args.pageToken);
+  if (args.status) query.set("status", args.status);
+  const path = args.postId
+    ? `/blogs/${encodeURIComponent(id)}/posts/${encodeURIComponent(args.postId)}/comments?${query.toString()}`
+    : `/blogs/${encodeURIComponent(id)}/comments?${query.toString()}`;
+  return bloggerFetch<{ items?: BloggerComment[]; nextPageToken?: string; kind?: string }>(path);
+}
+
+export async function getPageViews(range: "all" | "7days" | "30days" = "30days") {
+  const id = await resolveBlogId();
+  return bloggerFetch<{ blogId?: string; counts?: Array<{ timeRange?: string; count?: string }> }>(
+    `/blogs/${encodeURIComponent(id)}/pageviews?range=${encodeURIComponent(range)}`,
+  );
+}
+
+export async function revertPostToDraft(postId: string) {
+  const current = await getPost(postId);
+  if (current.status !== "LIVE") {
+    throw new Error(`Post ${postId} is not LIVE (status: ${current.status || "unknown"}); refusing to revert.`);
+  }
+  const id = await resolveBlogId();
+  return bloggerFetch<BloggerPost>(`/blogs/${encodeURIComponent(id)}/posts/${encodeURIComponent(postId)}/revert`, { method: "POST" });
+}
+
+export async function revertPageToDraft(pageId: string) {
+  const current = await getPage(pageId);
+  if (current.status !== "LIVE") {
+    throw new Error(`Page ${pageId} is not LIVE (status: ${current.status || "unknown"}); refusing to revert.`);
+  }
+  const id = await resolveBlogId();
+  return bloggerFetch<BloggerPage>(`/blogs/${encodeURIComponent(id)}/pages/${encodeURIComponent(pageId)}/revert`, { method: "POST" });
+}
+
+export async function deleteDraftPost(args: { postId: string; expectedTitle: string }) {
+  const current = await getPost(args.postId);
+  if (current.status !== "DRAFT") throw new Error(`Post ${args.postId} is not a draft; refusing to delete.`);
+  if ((current.title || "").trim() !== args.expectedTitle.trim()) throw new Error(`Title mismatch for post ${args.postId}; refusing to delete.`);
+  const id = await resolveBlogId();
+  return bloggerFetch<unknown>(`/blogs/${encodeURIComponent(id)}/posts/${encodeURIComponent(args.postId)}`, { method: "DELETE" });
+}
+
+export async function deleteDraftPage(args: { pageId: string; expectedTitle: string }) {
+  const current = await getPage(args.pageId);
+  if (current.status !== "DRAFT") throw new Error(`Page ${args.pageId} is not a draft; refusing to delete.`);
+  if ((current.title || "").trim() !== args.expectedTitle.trim()) throw new Error(`Title mismatch for page ${args.pageId}; refusing to delete.`);
+  const id = await resolveBlogId();
+  return bloggerFetch<unknown>(`/blogs/${encodeURIComponent(id)}/pages/${encodeURIComponent(args.pageId)}`, { method: "DELETE" });
+}
+
+export async function auditBlog() {
+  const blog = await getBlog() as Record<string, unknown>;
+  const id = String(blog.id || await resolveBlogId());
+  const [postsResult, pagesResult] = await Promise.all([
+    bloggerFetch<{ items?: BloggerPost[]; nextPageToken?: string }>(`/blogs/${encodeURIComponent(id)}/posts?maxResults=100&fetchBodies=false`),
+    bloggerFetch<{ items?: BloggerPage[]; nextPageToken?: string }>(`/blogs/${encodeURIComponent(id)}/pages?maxResults=100`),
+  ]);
+  return {
+    ok: true,
+    checkedAt: new Date().toISOString(),
+    blog: { id: blog.id, name: blog.name, url: blog.url, description: blog.description, locale: blog.locale },
+    content: {
+      postsReturned: (postsResult.items || []).length,
+      postsHasMore: Boolean(postsResult.nextPageToken),
+      pagesReturned: (pagesResult.items || []).length,
+      pagesHasMore: Boolean(pagesResult.nextPageToken),
+      pages: (pagesResult.items || []).map((page) => ({ id: page.id, title: page.title, url: page.url, status: page.status })),
+    },
+    limitations: [
+      "The audit is read-only and does not inspect or modify the Blogger theme/template.",
+      "Theme HTML/CSS editing requires Blogger Admin and a template backup before changes.",
+      "Counts cover the first 100 items per resource; hasMore flags indicate pagination.",
+    ],
+  };
 }

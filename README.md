@@ -201,3 +201,23 @@ Build and test against a branch first. Keep production secrets in Vercel environ
 ## License
 
 Private project code for MRK's deployment workflow.
+
+
+## Blogger management capabilities
+
+The combined MCP server exposes Blogger tools for:
+- Read-only connectivity and site audit
+- Listing, reading, searching, and SEO-auditing posts
+- Creating and updating drafts, with a guard that refuses to update a live post
+- Listing, reading, creating, updating, and publishing static-page drafts
+- Listing comments and retrieving Blogger pageview statistics
+- Reverting live posts/pages to drafts after explicit approval
+- Draft cleanup tools that require the exact resource ID and exact current title and reject live resources
+
+### Theme and site settings boundary
+
+Blogger API v3 does not provide full template HTML/CSS editing through this MCP API. Theme work must use Blogger Admin's Theme editor with a backup-first workflow. The server must not claim a theme change was applied unless a supported editing path actually performed and verified it.
+
+## Validation
+
+Run `npm run typecheck` and `npm run build` before release. Test read-only tools against a preview deployment first. Validate Google OAuth and Blogger API connectivity before promoting a build to production.

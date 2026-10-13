@@ -209,4 +209,93 @@ export function registerBloggerTools(server: McpServer) {
     z.object({ postId }),
     async ({ postId }) => blogger.publishPost(postId),
   );
+
+  register(
+    server,
+    "blogger_full_audit",
+    "Run a read-only Blogger site audit covering blog metadata, up to 100 posts and pages, pagination, and theme-editing limitations.",
+    z.object({}),
+    async () => blogger.auditBlog(),
+  );
+
+  register(
+    server,
+    "blogger_create_page_draft",
+    "Create a Blogger static page as a draft. This tool does not intentionally publish the page.",
+    z.object({ title: z.string().trim().min(1).max(300), content: z.string().min(1).max(100000) }),
+    async (args) => blogger.createPageDraft(args),
+  );
+
+  register(
+    server,
+    "blogger_update_page_draft",
+    "Update a Blogger static page only when its current status is DRAFT. Live pages are rejected.",
+    z.object({
+      pageId: postId,
+      title: z.string().trim().min(1).max(300).optional(),
+      content: z.string().min(1).max(100000).optional(),
+    }).refine((args) => args.title !== undefined || args.content !== undefined, { message: "Provide at least one field to update." }),
+    async (args) => blogger.updatePageDraft(args),
+  );
+
+  register(
+    server,
+    "blogger_publish_page",
+    "Publish a Blogger static page only after explicit approval for that exact page. The implementation verifies that it is currently a draft.",
+    z.object({ pageId: postId }),
+    async ({ pageId }) => blogger.publishPage(pageId),
+  );
+
+  register(
+    server,
+    "blogger_list_comments",
+    "List Blogger comments across the blog or for one exact post. Read-only.",
+    z.object({
+      maxResults: z.number().int().min(1).max(100).optional().default(20),
+      pageToken: z.string().optional(),
+      status: z.enum(["LIVE", "NEEDS_REVIEW", "SPAM", "TRASH"]).optional(),
+      postId: postId.optional(),
+    }),
+    async (args) => blogger.listComments(args),
+  );
+
+  register(
+    server,
+    "blogger_get_pageviews",
+    "Read Blogger pageview statistics for all time, the last 7 days, or the last 30 days. Read-only.",
+    z.object({ range: z.enum(["all", "7days", "30days"]).optional().default("30days") }),
+    async ({ range }) => blogger.getPageViews(range),
+  );
+
+  register(
+    server,
+    "blogger_revert_post_to_draft",
+    "Move a live post back to draft only after explicit approval for that exact post; it becomes unavailable to public readers.",
+    z.object({ postId }),
+    async ({ postId }) => blogger.revertPostToDraft(postId),
+  );
+
+  register(
+    server,
+    "blogger_revert_page_to_draft",
+    "Move a live page back to draft only after explicit approval for that exact page; it becomes unavailable to public readers.",
+    z.object({ pageId: postId }),
+    async ({ pageId }) => blogger.revertPageToDraft(pageId),
+  );
+
+  register(
+    server,
+    "blogger_delete_draft_post",
+    "Permanently delete a Blogger draft post only after explicit approval for the exact post. Requires ID and exact title and rejects live posts.",
+    z.object({ postId, expectedTitle: z.string().trim().min(1).max(300) }),
+    async (args) => blogger.deleteDraftPost(args),
+  );
+
+  register(
+    server,
+    "blogger_delete_draft_page",
+    "Permanently delete a Blogger draft page only after explicit approval for the exact page. Requires ID and exact title and rejects live pages.",
+    z.object({ pageId: postId, expectedTitle: z.string().trim().min(1).max(300) }),
+    async (args) => blogger.deleteDraftPage(args),
+  );
 }
