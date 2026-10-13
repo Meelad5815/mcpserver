@@ -61,12 +61,16 @@ async function bloggerFetch<T>(path: string, init: RequestInit = {}): Promise<T>
 
 async function blogId(): Promise<string> {
   const configured = process.env.BLOGGER_BLOG_ID?.trim();
-  if (configured) return configured;
+  // Never trust a configured numeric ID alone for page reads or writes.
+  // Resolve the blog through the authenticated Blogger API and verify its URL.
   const blog = await getBlog() as { id?: string; url?: string };
   let hostname = "";
   try { hostname = new URL(blog.url || "").hostname.toLowerCase(); } catch {}
   if (!blog.id || hostname !== "mrkdigitalservices.blogspot.com") {
     throw new Error("Could not verify the configured MRK Digital Blogger blog; refusing page access or writes.");
+  }
+  if (configured && configured !== blog.id) {
+    throw new Error("Configured BLOGGER_BLOG_ID does not match the verified MRK Digital Blogger blog; refusing page access or writes.");
   }
   return blog.id;
 }
