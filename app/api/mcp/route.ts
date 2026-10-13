@@ -21,7 +21,16 @@ const handler = createMcpHandler(
 
 const verifyToken = async (_req: Request, bearerToken?: string) => {
   if (!bearerToken) return undefined;
-  const payload = await verifyAccessToken(bearerToken);
+  let payload;
+  try {
+    payload = await verifyAccessToken(bearerToken);
+  } catch (error) {
+    console.error("[mcp-diagnostic]", JSON.stringify({
+      event: "auth_verification_exception",
+      errorName: error instanceof Error ? error.name : "UnknownError",
+    }));
+    throw error;
+  }
   if (!payload) return undefined;
 
   return {
@@ -48,6 +57,24 @@ async function diagnosticHandler(request: Request) {
   }));
   try {
     const response = await authHandler(request);
+    if (response.status >= 500) {
+      const contentType = response.headers.get("content-type") || "unknown";
+      let bodyPreview = "";
+      try {
+        bodyPreview = (await response.clone().text()).slice(0, 500)
+          .replace(/Bearer\s+[^\s"'<>]+/gi, "Bearer [REDACTED]")
+          .replace(/(access_token|refresh_token|client_secret|password|authorization)\s*[:=]\s*[^\s,;"'<>]+/gi, "$1=[REDACTED]");
+      } catch {
+        bodyPreview = "[unavailable]";
+      }
+      console.error("[mcp-diagnostic]", JSON.stringify({
+        event: "server_error_response",
+        requestId,
+        status: response.status,
+        contentType,
+        bodyPreview,
+      }));
+    }
     console.info("[mcp-diagnostic]", JSON.stringify({
       event: "request_end",
       requestId,
