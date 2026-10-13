@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { createMcpHandler, withMcpAuth } from "mcp-handler";
 import { registerWordPressTools } from "@/lib/mcp-tools";
 import { registerBloggerTools } from "@/lib/blogger-tools";
+import { registerBloggerPageTools } from "@/lib/blogger-page-tools";
 import { getResourceUrl, verifyAccessToken } from "@/lib/oauth";
 
 export const runtime = "nodejs";
@@ -11,6 +12,7 @@ const handler = createMcpHandler(
   (server) => {
     registerWordPressTools(server);
     registerBloggerTools(server);
+    registerBloggerPageTools(server);
   },
   {
     serverInfo: { name: "MRK Digital WordPress + Blogger MCP", version: "1.3.1" },
