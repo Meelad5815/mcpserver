@@ -328,9 +328,9 @@ export function registerBloggerTools(server: McpServer) {
           });
           const body = (await response.text()).slice(0, 500000);
           const robotsRules = target.kind === "robots"
-            ? body.split(/\\r?\\n/).map((line: string) => line.trim()).filter(Boolean)
+            ? body.split(/\r?\n/).map((line: string) => line.trim()).filter(Boolean)
             : undefined;
-          const sitemapLocations = /<loc>\\s*([^<]+)\\s*<\\/loc>/gi;
+          const sitemapLocations = /<loc>\s*([^<]+)\s*<\/loc>/gi;
           const sampleUrls: string[] = [];
           let match: RegExpExecArray | null;
           while ((match = sitemapLocations.exec(body)) && sampleUrls.length < 100) {
