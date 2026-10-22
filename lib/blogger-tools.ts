@@ -298,4 +298,75 @@ export function registerBloggerTools(server: McpServer) {
     z.object({ pageId: postId, expectedTitle: z.string().trim().min(1).max(300) }),
     async (args) => blogger.deleteDraftPage(args),
   );
+  register(
+    server,
+    "blogger_indexing_diagnostics",
+    "Read-only public diagnostics for the configured MRK Digital Blogger site. Checks robots.txt, sitemap.xml, sitemap-pages.xml, and user-supplied URLs for HTTP status and robots directives. Does not change settings or submit Search Console validation.",
+    z.object({
+      urls: z.array(z.string().url().max(2048)).max(30).optional().default([]),
+    }),
+    async ({ urls }) => {
+      const base = "https://mrkdigitalservices.blogspot.com";
+      const targets = [
+        { kind: "robots", url: base + "/robots.txt" },
+        { kind: "sitemap", url: base + "/sitemap.xml" },
+        { kind: "pages_sitemap", url: base + "/sitemap-pages.xml" },
+        ...urls.map((url: string) => ({ kind: "submitted_url", url })),
+      ];
+      const results = await Promise.all(targets.map(async (target) => {
+        try {
+          const parsed = new URL(target.url);
+          if (parsed.protocol !== "https:" || !["mrkdigitalservices.blogspot.com"].includes(parsed.hostname)) {
+            return { ...target, error: "Only HTTPS URLs on mrkdigitalservices.blogspot.com are allowed." };
+          }
+          const response = await fetch(target.url, {
+            method: "GET",
+            redirect: "follow",
+            cache: "no-store",
+            headers: { "User-Agent": "MRK-SEO-Diagnostics/1.0" },
+            signal: AbortSignal.timeout(10000),
+          });
+          const body = (await response.text()).slice(0, 500000);
+          const robotsRules = target.kind === "robots"
+            ? body.split(/\r?\n/).map((line: string) => line.trim()).filter(Boolean)
+            : undefined;
+          const sitemapLocations = /<loc>\s*([^<]+)\s*<\/loc>/gi;
+          const sampleUrls: string[] = [];
+          let match: RegExpExecArray | null;
+          while ((match = sitemapLocations.exec(body)) && sampleUrls.length < 100) {
+            sampleUrls.push(match[1].trim());
+          }
+          return {
+            ...target,
+            finalUrl: response.url,
+            status: response.status,
+            ok: response.ok,
+            contentType: response.headers.get("content-type"),
+            robotsRules,
+            sitemapUrlCount: target.kind.includes("sitemap") ? sampleUrls.length : undefined,
+            sampleUrls: target.kind.includes("sitemap") ? sampleUrls.slice(0, 25) : undefined,
+            note: response.status === 404
+              ? "URL returns 404; check whether it should exist or needs a Blogger custom redirect."
+              : target.kind === "robots" && response.ok
+                ? "Review the returned rules to confirm desired paths are crawlable."
+                : undefined,
+          };
+        } catch (error) {
+          return { ...target, error: error instanceof Error ? error.message : String(error) };
+        }
+      }));
+      return {
+        checkedAt: new Date().toISOString(),
+        site: base,
+        readOnly: true,
+        results,
+        limitations: [
+          "This public HTTP check cannot access the private Google Search Console coverage report.",
+          "It does not modify Blogger settings, create redirects, or request indexing.",
+          "Only provide URLs reported by Search Console for exact diagnosis.",
+        ],
+      };
+    },
+  );
+
 }
